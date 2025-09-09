@@ -1,5 +1,6 @@
 // Defines a parser and serializer for [CommonMark](http://commonmark.org/) text.
+// Also provides AsciiDoc support.
 
 export {schema} from "./schema"
-export {defaultMarkdownParser, MarkdownParser, ParseSpec} from "./from_markdown"
-export {MarkdownSerializer, defaultMarkdownSerializer, MarkdownSerializerState} from "./to_markdown"
+export {defaultAsciiDocParser, AsciiDocParser} from "./from_asciidoc"
+export {AsciiDocSerializer, defaultAsciiDocSerializer, AsciiDocSerializerState} from "./to_asciidoc"

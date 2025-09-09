@@ -1,4 +1,5 @@
-import {Schema, MarkSpec} from "prosemirror-model"
+import {Schema} from "prosemirror-model"
+import type {MarkSpec} from "prosemirror-model"
 
 /// Document schema for the data model used by CommonMark.
 export const schema = new Schema({

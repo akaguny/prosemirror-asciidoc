@@ -4,10 +4,10 @@ type MarkSerializerSpec = {
   /// The string that should appear before a piece of content marked
   /// by this mark, either directly or as a function that returns an
   /// appropriate string.
-  open: string | ((state: MarkdownSerializerState, mark: Mark, parent: Node, index: number) => string),
+  open: string | ((state: AsciiDocSerializerState, mark: Mark, parent: Node, index: number) => string),
   /// The string that should appear after a piece of content marked by
   /// this mark.
-  close: string | ((state: MarkdownSerializerState, mark: Mark, parent: Node, index: number) => string),
+  close: string | ((state: AsciiDocSerializerState, mark: Mark, parent: Node, index: number) => string),
   /// When `true`, this indicates that the order in which the mark's
   /// opening and closing syntax appears relative to other mixable
   /// marks can be varied. (For example, you can say `**a *b***` and
@@ -28,14 +28,14 @@ type MarkSerializerSpec = {
 const blankMark: MarkSerializerSpec = {open: "", close: "", mixable: true}
 
 /// A specification for serializing a ProseMirror document as
-/// Markdown/CommonMark text.
-export class MarkdownSerializer {
+/// AsciiDoc text.
+export class AsciiDocSerializer {
   /// Construct a serializer with the given configuration. The `nodes`
   /// object should map node names in a given schema to function that
   /// take a serializer state and such a node, and serialize the node.
   constructor(
     /// The node serializer functions for this serializer.
-    readonly nodes: {[node: string]: (state: MarkdownSerializerState, node: Node, parent: Node, index: number) => void},
+    readonly nodes: {[node: string]: (state: AsciiDocSerializerState, node: Node, parent: Node, index: number) => void},
     /// The mark serializer info.
     readonly marks: {[mark: string]: MarkSerializerSpec},
     readonly options: {
@@ -54,8 +54,7 @@ export class MarkdownSerializer {
     } = {}
   ) {}
 
-  /// Serialize the content of the given node to
-  /// [CommonMark](http://commonmark.org/).
+  /// Serialize the content of the given node to AsciiDoc.
   serialize(content: Node, options: {
     /// Whether to render lists in a tight style. This can be overridden
     /// on a node level by specifying a tight attribute on the node.
@@ -63,121 +62,22 @@ export class MarkdownSerializer {
     tightLists?: boolean
   } = {}) {
     options = Object.assign({}, this.options, options)
-    let state = new MarkdownSerializerState(this.nodes, this.marks, options)
+    let state = new AsciiDocSerializerState(this.nodes, this.marks, options)
     state.renderContent(content)
     return state.out
   }
 }
 
-/// A serializer for the [basic schema](#schema).
-export const defaultMarkdownSerializer = new MarkdownSerializer({
-  blockquote(state, node) {
-    state.wrapBlock("> ", null, node, () => state.renderContent(node))
-  },
-  code_block(state, node) {
-    // Make sure the front matter fences are longer than any dash sequence within it
-    const backticks = node.textContent.match(/`{3,}/gm)
-    const fence = backticks ? (backticks.sort().slice(-1)[0] + "`") : "```"
-
-    state.write(fence + (node.attrs.params || "") + "\n")
-    state.text(node.textContent, false)
-    // Add a newline to the current content before adding closing marker
-    state.write("\n")
-    state.write(fence)
-    state.closeBlock(node)
-  },
-  heading(state, node) {
-    state.write(state.repeat("#", node.attrs.level) + " ")
-    state.renderInline(node, false)
-    state.closeBlock(node)
-  },
-  horizontal_rule(state, node) {
-    state.write(node.attrs.markup || "---")
-    state.closeBlock(node)
-  },
-  bullet_list(state, node) {
-    state.renderList(node, "  ", () => (node.attrs.bullet || "*") + " ")
-  },
-  ordered_list(state, node) {
-    let start = node.attrs.order || 1
-    let maxW = String(start + node.childCount - 1).length
-    let space = state.repeat(" ", maxW + 2)
-    state.renderList(node, space, i => {
-      let nStr = String(start + i)
-      return state.repeat(" ", maxW - nStr.length) + nStr + ". "
-    })
-  },
-  list_item(state, node) {
-    state.renderContent(node)
-  },
-  paragraph(state, node) {
-    state.renderInline(node)
-    state.closeBlock(node)
-  },
-
-  image(state, node) {
-    state.write("![" + state.esc(node.attrs.alt || "") + "](" + node.attrs.src.replace(/[\(\)]/g, "\\$&") +
-                (node.attrs.title ? ' "' + node.attrs.title.replace(/"/g, '\\"') + '"' : "") + ")")
-  },
-  hard_break(state, node, parent, index) {
-    for (let i = index + 1; i < parent.childCount; i++)
-      if (parent.child(i).type != node.type) {
-        state.write("\\\n")
-        return
-      }
-  },
-  text(state, node) {
-    state.text(node.text!, !state.inAutolink)
-  }
-}, {
-  em: {open: "*", close: "*", mixable: true, expelEnclosingWhitespace: true},
-  strong: {open: "**", close: "**", mixable: true, expelEnclosingWhitespace: true},
-  link: {
-    open(state, mark, parent, index) {
-      state.inAutolink = isPlainURL(mark, parent, index)
-      return state.inAutolink ? "<" : "["
-    },
-    close(state, mark, parent, index) {
-      let {inAutolink} = state
-      state.inAutolink = undefined
-      return inAutolink ? ">"
-        : "](" + mark.attrs.href.replace(/[\(\)"]/g, "\\$&") + (mark.attrs.title ? ` "${mark.attrs.title.replace(/"/g, '\\"')}"` : "") + ")"
-    },
-    mixable: true
-  },
-  code: {open(_state, _mark, parent, index) { return backticksFor(parent.child(index), -1) },
-         close(_state, _mark, parent, index) { return backticksFor(parent.child(index - 1), 1) },
-         escape: false}
-})
-
-function backticksFor(node: Node, side: number) {
-  let ticks = /`+/g, m, len = 0
-  if (node.isText) while (m = ticks.exec(node.text!)) len = Math.max(len, m[0].length)
-  let result = len > 0 && side > 0 ? " `" : "`"
-  for (let i = 0; i < len; i++) result += "`"
-  if (len > 0 && side < 0) result += " "
-  return result
-}
-
-function isPlainURL(link: Mark, parent: Node, index: number) {
-  if (link.attrs.title || !/^\w+:/.test(link.attrs.href)) return false
-  let content = parent.child(index)
-  if (!content.isText || content.text != link.attrs.href || content.marks[content.marks.length - 1] != link) return false
-  return index == parent.childCount - 1 || !link.isInSet(parent.child(index + 1).marks)
-}
-
 /// This is an object used to track state and expose
-/// methods related to markdown serialization. Instances are passed to
-/// node and mark serialization methods (see `toMarkdown`).
-export class MarkdownSerializerState {
+/// methods related to AsciiDoc serialization. Instances are passed to
+/// node and mark serialization methods.
+export class AsciiDocSerializerState {
   /// @internal
   delim: string = ""
   /// @internal
   out: string = ""
   /// @internal
   closed: Node | null = null
-  /// @internal
-  inAutolink: boolean | undefined = undefined
   /// @internal
   atBlockStart: boolean = false
   /// @internal
@@ -186,7 +86,7 @@ export class MarkdownSerializerState {
   /// @internal
   constructor(
     /// @internal
-    readonly nodes: {[node: string]: (state: MarkdownSerializerState, node: Node, parent: Node, index: number) => void},
+    readonly nodes: {[node: string]: (state: AsciiDocSerializerState, node: Node, parent: Node, index: number) => void},
     /// @internal
     readonly marks: {[mark: string]: MarkSerializerSpec},
     /// The options passed to the serializer.
@@ -218,7 +118,7 @@ export class MarkdownSerializerState {
     let info = this.marks[name]
     if (!info) {
       if (this.options.strict !== false)
-        throw new Error(`Mark type \`${name}\` not supported by Markdown renderer`)
+        throw new Error(`Mark type \`${name}\` not supported by AsciiDoc renderer`)
       info = blankMark
     }
     return info
@@ -268,9 +168,6 @@ export class MarkdownSerializerState {
     let lines = text.split("\n")
     for (let i = 0; i < lines.length; i++) {
       this.write()
-      // Escape exclamation marks in front of links
-      if (!escape && lines[i][0] == "[" && /(^|[^\\])\!$/.test(this.out))
-        this.out = this.out.slice(0, this.out.length - 1) + "\\!"
       this.out += escape ? this.esc(lines[i], this.atBlockStart) : lines[i]
       if (i != lines.length - 1) this.out += "\n"
     }
@@ -282,7 +179,7 @@ export class MarkdownSerializerState {
       this.nodes[node.type.name](this, node, parent, index)
     } else {
       if (this.options.strict !== false) {
-        throw new Error("Token type `" + node.type.name + "` not supported by Markdown renderer")
+        throw new Error("Token type `" + node.type.name + "` not supported by AsciiDoc renderer")
       } else if (!node.type.isLeaf) {
         if (node.type.inlineContent) this.renderInline(node)
         else this.renderContent(node)
@@ -429,7 +326,7 @@ export class MarkdownSerializerState {
     this.inTightList = prevTight
   }
 
-  /// Escape the given string so that it can safely appear in Markdown
+  /// Escape the given string so that it can safely appear in AsciiDoc
   /// content. If `startOfLine` is true, also escape characters that
   /// have special meaning only at the start of the line.
   esc(str: string, startOfLine = false) {
@@ -442,12 +339,6 @@ export class MarkdownSerializerState {
     return str
   }
 
-  /// @internal
-  quote(str: string) {
-    let wrap = str.indexOf('"') == -1 ? '""' : str.indexOf("'") == -1 ? "''" : "()"
-    return wrap[0] + str + wrap[1]
-  }
-
   /// Repeat the given string `n` times.
   repeat(str: string, n: number) {
     let out = ""
@@ -455,7 +346,7 @@ export class MarkdownSerializerState {
     return out
   }
 
-  /// Get the markdown string for a given opening or closing mark.
+  /// Get the AsciiDoc string for a given opening or closing mark.
   markString(mark: Mark, open: boolean, parent: Node, index: number) {
     let info = this.getMark(mark.type.name)
     let value = open ? info.open : info.close
@@ -472,3 +363,75 @@ export class MarkdownSerializerState {
     }
   }
 }
+
+/// An AsciiDoc serializer for the basic schema.
+export const defaultAsciiDocSerializer = new AsciiDocSerializer({
+  blockquote(state, node) {
+    state.wrapBlock("____\n", null, node, () => state.renderContent(node))
+    state.write("____")
+    state.closeBlock(node)
+  },
+  code_block(state, node) {
+    state.write("----\n")
+    state.text(node.textContent, false)
+    state.write("\n----")
+    state.closeBlock(node)
+  },
+  heading(state, node) {
+    state.write(state.repeat("=", node.attrs.level) + " ")
+    state.renderInline(node, false)
+    state.closeBlock(node)
+  },
+  horizontal_rule(state, node) {
+    state.write("'''")
+    state.closeBlock(node)
+  },
+  bullet_list(state, node) {
+    state.renderList(node, "  ", () => "* ")
+  },
+  ordered_list(state, node) {
+    let start = node.attrs.order || 1
+    let maxW = String(start + node.childCount - 1).length
+    let space = state.repeat(" ", maxW + 2)
+    state.renderList(node, space, i => {
+      let nStr = String(start + i)
+      return state.repeat(" ", maxW - nStr.length) + nStr + ". "
+    })
+  },
+  list_item(state, node) {
+    state.renderContent(node)
+  },
+  paragraph(state, node) {
+    state.renderInline(node)
+    state.closeBlock(node)
+  },
+
+  image(state, node) {
+    state.write("image:" + node.attrs.src.replace(/[\(\)]/g, "\\$&") +
+                (node.attrs.alt ? "[" + node.attrs.alt.replace(/[\[\]]/g, "\\$&") + "]" : "") +
+                (node.attrs.title ? ' "' + node.attrs.title.replace(/"/g, '\\"') + '"' : ""))
+  },
+  hard_break(state, node, parent, index) {
+    for (let i = index + 1; i < parent.childCount; i++)
+      if (parent.child(i).type != node.type) {
+        state.write(" +\n")
+        return
+      }
+  },
+  text(state, node) {
+    state.text(node.text!, true)
+  }
+}, {
+  em: {open: "_", close: "_", mixable: true, expelEnclosingWhitespace: true},
+  strong: {open: "*", close: "*", mixable: true, expelEnclosingWhitespace: true},
+  link: {
+    open(state, mark, parent, index) {
+      return "link:" + mark.attrs.href + "["
+    },
+    close(state, mark, parent, index) {
+      return "]"
+    },
+    mixable: true
+  },
+  code: {open: "`", close: "`", escape: false}
+})

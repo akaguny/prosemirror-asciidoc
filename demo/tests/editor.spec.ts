@@ -267,3 +267,332 @@ test.describe('Asciidoc Output Display Feature', () => {
     expect(consoleErrors).toHaveLength(0);
   });
 });
+test.describe('Formatting Features', () => {
+  test('Scenario: User applies H2 heading via toolbar button and verifies asciidoc output', async ({ page }) => {
+    // Given: The editor is loaded with content
+    const editor = page.locator('[contenteditable="true"]');
+    const outputTextarea = page.locator('#output');
+    const errors: Array<Error['stack']> = [];
+    const consoleErrors: Array<string> = [];
+
+    page.on('pageerror', error => {
+      errors.push(error.stack?.slice(0, 500) || 'Unknown error');
+    });
+
+    page.on('console', msg => {
+      if (msg.type() === 'error') {
+        consoleErrors.push(msg.text());
+      }
+    });
+
+    await page.goto('/');
+
+    // Clear and add test content
+    await editor.click();
+    await page.keyboard.press('Control+a');
+    await page.keyboard.press('Delete');
+    await page.keyboard.type('Test Heading');
+
+    // Select the text
+    await page.keyboard.press('Control+a');
+
+    // When: User clicks H2 button
+    await page.locator('#h2-btn').click();
+
+    // Then: Editor shows H2 heading and asciidoc output is correct
+    await page.waitForTimeout(500);
+    const editorContent = await editor.innerHTML();
+    expect(editorContent).toContain('<h2>');
+    const outputValue = await outputTextarea.inputValue();
+    expect(outputValue).toContain('== Test Heading');
+    expect(errors).toHaveLength(0);
+    expect(consoleErrors).toHaveLength(0);
+  });
+
+  test('Scenario: User applies H2 heading via keybinding and verifies asciidoc output', async ({ page }) => {
+    // Given: The editor is loaded with content
+    const editor = page.locator('[contenteditable="true"]');
+    const outputTextarea = page.locator('#output');
+    const errors: Array<Error['stack']> = [];
+    const consoleErrors: Array<string> = [];
+
+    page.on('pageerror', error => {
+      errors.push(error.stack?.slice(0, 500) || 'Unknown error');
+    });
+
+    page.on('console', msg => {
+      if (msg.type() === 'error') {
+        consoleErrors.push(msg.text());
+      }
+    });
+
+    await page.goto('/');
+
+    // Clear and add test content
+    await editor.click();
+    await page.keyboard.press('Control+a');
+    await page.keyboard.press('Delete');
+    await page.keyboard.type('Test Heading');
+
+    // Select the text
+    await page.keyboard.press('Control+a');
+
+    // When: User presses Ctrl+2
+    await page.keyboard.press('Control+2');
+
+    // Then: Editor shows H2 heading and asciidoc output is correct
+    await page.waitForTimeout(500);
+    const editorContent = await editor.innerHTML();
+    expect(editorContent).toContain('<h2>');
+    const outputValue = await outputTextarea.inputValue();
+    expect(outputValue).toContain('== Test Heading');
+    expect(errors).toHaveLength(0);
+    expect(consoleErrors).toHaveLength(0);
+  });
+
+  test('Scenario: User applies H3 heading via toolbar button and verifies asciidoc output', async ({ page }) => {
+    // Given: The editor is loaded with content
+    const editor = page.locator('[contenteditable="true"]');
+    const outputTextarea = page.locator('#output');
+    const errors: Array<Error['stack']> = [];
+    const consoleErrors: Array<string> = [];
+
+    page.on('pageerror', error => {
+      errors.push(error.stack?.slice(0, 500) || 'Unknown error');
+    });
+
+    page.on('console', msg => {
+      if (msg.type() === 'error') {
+        consoleErrors.push(msg.text());
+      }
+    });
+
+    await page.goto('/');
+
+    // Clear and add test content
+    await editor.click();
+    await page.keyboard.press('Control+a');
+    await page.keyboard.press('Delete');
+    await page.keyboard.type('Test Heading');
+
+    // Select the text
+    await page.keyboard.press('Control+a');
+
+    // When: User clicks H3 button
+    await page.locator('#h3-btn').click();
+
+    // Then: Editor shows H3 heading and asciidoc output is correct
+    await page.waitForTimeout(500);
+    const editorContent = await editor.innerHTML();
+    expect(editorContent).toContain('<h3>');
+    const outputValue = await outputTextarea.inputValue();
+    expect(outputValue).toContain('=== Test Heading');
+    expect(errors).toHaveLength(0);
+    expect(consoleErrors).toHaveLength(0);
+  });
+
+  test('Scenario: User applies H3 heading via keybinding and verifies asciidoc output', async ({ page }) => {
+    // Given: The editor is loaded with content
+    const editor = page.locator('[contenteditable="true"]');
+    const outputTextarea = page.locator('#output');
+    const errors: Array<Error['stack']> = [];
+    const consoleErrors: Array<string> = [];
+
+    page.on('pageerror', error => {
+      errors.push(error.stack?.slice(0, 500) || 'Unknown error');
+    });
+
+    page.on('console', msg => {
+      if (msg.type() === 'error') {
+        consoleErrors.push(msg.text());
+      }
+    });
+
+    await page.goto('/');
+
+    // Clear and add test content
+    await editor.click();
+    await page.keyboard.press('Control+a');
+    await page.keyboard.press('Delete');
+    await page.keyboard.type('Test Heading');
+
+    // Select the text
+    await page.keyboard.press('Control+a');
+
+    // When: User presses Ctrl+3
+    await page.keyboard.press('Control+3');
+
+    // Then: Editor shows H3 heading and asciidoc output is correct
+    await page.waitForTimeout(500);
+    const editorContent = await editor.innerHTML();
+    expect(editorContent).toContain('<h3>');
+    const outputValue = await outputTextarea.inputValue();
+    expect(outputValue).toContain('=== Test Heading');
+    expect(errors).toHaveLength(0);
+    expect(consoleErrors).toHaveLength(0);
+  });
+
+  test('Scenario: User applies bold formatting via toolbar button and verifies asciidoc output', async ({ page }) => {
+    // Given: The editor is loaded with content
+    const editor = page.locator('[contenteditable="true"]');
+    const outputTextarea = page.locator('#output');
+    const errors: Array<Error['stack']> = [];
+    const consoleErrors: Array<string> = [];
+
+    page.on('pageerror', error => {
+      errors.push(error.stack?.slice(0, 500) || 'Unknown error');
+    });
+
+    page.on('console', msg => {
+      if (msg.type() === 'error') {
+        consoleErrors.push(msg.text());
+      }
+    });
+
+    await page.goto('/');
+
+    // Clear and add test content
+    await editor.click();
+    await page.keyboard.press('Control+a');
+    await page.keyboard.press('Delete');
+    await page.keyboard.type('Test text');
+
+    // Select the text
+    await page.keyboard.press('Control+a');
+
+    // When: User clicks Bold button
+    await page.locator('#bold-btn').click();
+
+    // Then: Editor shows bold text and asciidoc output is correct
+    await page.waitForTimeout(500);
+    const editorContent = await editor.innerHTML();
+    expect(editorContent).toContain('<strong>');
+    const outputValue = await outputTextarea.inputValue();
+    expect(outputValue).toContain('*Test text*');
+    expect(errors).toHaveLength(0);
+    expect(consoleErrors).toHaveLength(0);
+  });
+
+  test('Scenario: User applies bold formatting via keybinding and verifies asciidoc output', async ({ page }) => {
+    // Given: The editor is loaded with content
+    const editor = page.locator('[contenteditable="true"]');
+    const outputTextarea = page.locator('#output');
+    const errors: Array<Error['stack']> = [];
+    const consoleErrors: Array<string> = [];
+
+    page.on('pageerror', error => {
+      errors.push(error.stack?.slice(0, 500) || 'Unknown error');
+    });
+
+    page.on('console', msg => {
+      if (msg.type() === 'error') {
+        consoleErrors.push(msg.text());
+      }
+    });
+
+    await page.goto('/');
+
+    // Clear and add test content
+    await editor.click();
+    await page.keyboard.press('Control+a');
+    await page.keyboard.press('Delete');
+    await page.keyboard.type('Test text');
+
+    // Select the text
+    await page.keyboard.press('Control+a');
+
+    // When: User presses Ctrl+B
+    await page.keyboard.press('Control+b');
+
+    // Then: Editor shows bold text and asciidoc output is correct
+    await page.waitForTimeout(500);
+    const editorContent = await editor.innerHTML();
+    expect(editorContent).toContain('<strong>');
+    const outputValue = await outputTextarea.inputValue();
+    expect(outputValue).toContain('*Test text*');
+    expect(errors).toHaveLength(0);
+    expect(consoleErrors).toHaveLength(0);
+  });
+
+  test('Scenario: User applies italic formatting via toolbar button and verifies asciidoc output', async ({ page }) => {
+    // Given: The editor is loaded with content
+    const editor = page.locator('[contenteditable="true"]');
+    const outputTextarea = page.locator('#output');
+    const errors: Array<Error['stack']> = [];
+    const consoleErrors: Array<string> = [];
+
+    page.on('pageerror', error => {
+      errors.push(error.stack?.slice(0, 500) || 'Unknown error');
+    });
+
+    page.on('console', msg => {
+      if (msg.type() === 'error') {
+        consoleErrors.push(msg.text());
+      }
+    });
+
+    await page.goto('/');
+
+    // Clear and add test content
+    await editor.click();
+    await page.keyboard.press('Control+a');
+    await page.keyboard.press('Delete');
+    await page.keyboard.type('Test text');
+
+    // Select the text
+    await page.keyboard.press('Control+a');
+
+    // When: User clicks Italic button
+    await page.locator('#italic-btn').click();
+
+    // Then: Editor shows italic text and asciidoc output is correct
+    await page.waitForTimeout(500);
+    const editorContent = await editor.innerHTML();
+    expect(editorContent).toContain('<em>');
+    const outputValue = await outputTextarea.inputValue();
+    expect(outputValue).toContain('_Test text_');
+    expect(errors).toHaveLength(0);
+    expect(consoleErrors).toHaveLength(0);
+  });
+
+  test('Scenario: User applies italic formatting via keybinding and verifies asciidoc output', async ({ page }) => {
+    // Given: The editor is loaded with content
+    const editor = page.locator('[contenteditable="true"]');
+    const outputTextarea = page.locator('#output');
+    const errors: Array<Error['stack']> = [];
+    const consoleErrors: Array<string> = [];
+
+    page.on('pageerror', error => {
+      errors.push(error.stack?.slice(0, 500) || 'Unknown error');
+    });
+
+    page.on('console', msg => {
+      if (msg.type() === 'error') {
+        consoleErrors.push(msg.text());
+      }
+    });
+
+    await page.goto('/');
+
+    // Clear and add test content
+    await editor.click();
+    await page.keyboard.press('Control+a');
+    await page.keyboard.press('Delete');
+    await page.keyboard.type('Test text');
+
+    // Select the text
+    await page.keyboard.press('Control+a');
+
+    // When: User presses Ctrl+I
+    await page.keyboard.press('Control+i');
+
+    // Then: Editor shows italic text and asciidoc output is correct
+    await page.waitForTimeout(500);
+    const editorContent = await editor.innerHTML();
+    expect(editorContent).toContain('<em>');
+    const outputValue = await outputTextarea.inputValue();
+    expect(outputValue).toContain('_Test text_');
+    expect(errors).toHaveLength(0);
+    expect(consoleErrors).toHaveLength(0);
+  });
+});

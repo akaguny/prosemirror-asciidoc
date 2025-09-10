@@ -1,7 +1,7 @@
 import {builders, NodeBuilder, MarkBuilder} from "prosemirror-test-builder"
-import {schema} from "prosemirror-asciidoc"
+import {asciidocSchema} from "prosemirror-asciidoc"
 
-const b = builders(schema, {
+const b = builders(asciidocSchema, {
   p: {nodeType: "paragraph"},
   h1: {nodeType: "heading", level: 1},
   h2: {nodeType: "heading", level: 2},

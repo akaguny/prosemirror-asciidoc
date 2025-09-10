@@ -1,5 +1,5 @@
 {
-  "name": "prosemirror-markdown",
+  "name": "prosemirror-asciidoc",
   "version": "1.13.2",
   "description": "ProseMirror Markdown integration",
   "type": "module",
@@ -24,14 +24,12 @@
     "url": "git://github.com/prosemirror/prosemirror-markdown.git"
   },
   "dependencies": {
-    "markdown-it": "^14.0.0",
-    "prosemirror-model": "^1.25.0",
-    "@types/markdown-it": "^14.0.0"
+    "asciidoctor": "^3.0.4",
+    "prosemirror-model": "^1.25.3"
   },
   "devDependencies": {
     "@prosemirror/buildhelper": "^0.1.5",
-    "prosemirror-test-builder": "^1.0.0",
-    "punycode": "^1.4.0"
+    "prosemirror-test-builder": "^1.0.0"
   },
   "scripts": {
     "test": "pm-runtests",

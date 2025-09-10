@@ -2,16 +2,16 @@ import {eq} from "prosemirror-test-builder"
 import {Node} from "prosemirror-model"
 import ist from "ist"
 
-import {schema, defaultMarkdownParser, defaultMarkdownSerializer, MarkdownSerializer} from "prosemirror-markdown"
+import {schema, defaultAsciiDocParser, defaultAsciiDocSerializer, AsciiDocSerializer} from "prosemirror-asciidoc"
 
 import {doc, blockquote, h1, h2, p, hr, li, ol, ol3, ul, pre, em, strong, code, a, link, br, img} from "./build.js"
 
 function parse(text: string, doc: Node) {
-  ist(defaultMarkdownParser.parse(text), doc, eq)
+  ist(defaultAsciiDocParser.parse(text), doc, eq)
 }
 
 function serialize(doc: Node, text: string) {
-  ist(defaultMarkdownSerializer.serialize(doc), text)
+  ist(defaultAsciiDocSerializer.serialize(doc), text)
 }
 
 function same(text: string, doc: Node) {
@@ -19,28 +19,28 @@ function same(text: string, doc: Node) {
   serialize(doc, text)
 }
 
-describe("markdown", () => {
+describe("asciidoc", () => {
   it("parses a paragraph", () =>
      same("hello!",
           doc(p("hello!"))))
 
   it("parses headings", () =>
-     same("# one\n\n## two\n\nthree",
+     same("= one\n\n== two\n\nthree",
           doc(h1("one"), h2("two"), p("three"))))
 
   it("parses a blockquote", () =>
-     same("> once\n\n> > twice",
+     same("____\nonce\n____\n\n____\n____\ntwice\n____\n____",
           doc(blockquote(p("once")), blockquote(blockquote(p("twice"))))))
 
   // FIXME bring back testing for preserving bullets and tight attrs
   // when supported again
 
   it("parses a bullet list", () =>
-     same("* foo\n\n  * bar\n\n  * baz\n\n* quux",
+     same("* foo\n\n** bar\n\n** baz\n\n* quux",
           doc(ul(li(p("foo"), ul(li(p("bar")), li(p("baz")))), li(p("quux"))))))
 
   it("parses an ordered list", () =>
-     same("1. Hello\n\n2. Goodbye\n\n3. Nest\n\n   1. Hey\n\n   2. Aye",
+     same(". Hello\n\n. Goodbye\n\n. Nest\n\n.. Hey\n\n.. Aye",
           doc(ol(li(p("Hello")), li(p("Goodbye")), li(p("Nest"), ol(li(p("Hey")), li(p("Aye"))))))))
 
   it("preserves ordered list start number", () =>
@@ -48,11 +48,11 @@ describe("markdown", () => {
           doc(ol3(li(p("Foo")), li(p("Bar"))))))
 
   it("can parse a heading in a list", () =>
-    same("* # Foo",
+    same("* = Foo",
          doc(ul(li(h1("Foo"))))))
 
   it("parses a code block", () =>
-     same("Some code:\n\n```\nHere it is\n```\n\nPara",
+     same("Some code:\n\n----\nHere it is\n----\n\nPara",
           doc(p("Some code:"), schema.node("code_block", {params: ""}, [schema.text("Here it is")]), p("Para"))))
 
   it("parses an intended code block", () =>
@@ -60,31 +60,31 @@ describe("markdown", () => {
           doc(p("Some code:"), pre("Here it is"), p("Para"))))
 
   it("parses a fenced code block with info string", () =>
-     same("foo\n\n```javascript\n1\n```",
+     same("foo\n\n[source,javascript]\n----\n1\n----",
           doc(p("foo"), schema.node("code_block", {params: "javascript"}, [schema.text("1")]))))
 
   it("parses inline marks", () =>
-     same("Hello. Some *em* text, some **strong** text, and some `code`",
+     same("Hello. Some _em_ text, some *strong* text, and some `code`",
           doc(p("Hello. Some ", em("em"), " text, some ", strong("strong"), " text, and some ", code("code")))))
 
   it("parses overlapping inline marks", () =>
-     same("This is **strong *emphasized text with `code` in* it**",
+     same("This is *strong _emphasized text with `code` in_ it*",
           doc(p("This is ", strong("strong ", em("emphasized text with ", code("code"), " in"), " it")))))
 
   it("parses links inside strong text", () =>
-     same("**[link](foo) is bold**",
+     same("*link:http://example.com[link] is bold*",
           doc(p(strong(a("link"), " is bold")))))
 
   it("parses emphasis inside links", () =>
-    same("[link *foo **bar** `#`*](foo)",
-         doc(p(a("link ", em("foo ", strong("bar"), " ", code("#")))))))
+    same("link:http://example.com[link _foo *bar* `code`]",
+         doc(p(a("link ", em("foo ", strong("bar"), " ", code("code")))))))
 
   it("parses code mark inside strong text", () =>
-     same("**`code` is bold**",
+     same("*`code` is bold*",
           doc(p(strong(code("code"), " is bold")))))
 
   it("parses code mark containing backticks", () =>
-     same("``` one backtick: ` two backticks: `` ```",
+     same("`one backtick: ` two backticks: ``",
           doc(p(code("one backtick: ` two backticks: ``")))))
 
   it("parses code mark containing only whitespace", () =>
@@ -92,47 +92,47 @@ describe("markdown", () => {
                "Three spaces: `   `"))
 
   it("parses hard breaks", () => {
-    same("foo\\\nbar", doc(p("foo", br(), "bar")))
-    same("*foo\\\nbar*", doc(p(em("foo", br(), "bar"))))
+    same("foo +\nbar", doc(p("foo", br(), "bar")))
+    same("_foo +\nbar_", doc(p(em("foo", br(), "bar"))))
   })
 
   it("parses links", () =>
-     same("My [link](foo) goes to foo",
+     same("My link:foo[link] goes to foo",
           doc(p("My ", a("link"), " goes to foo"))))
 
   it("parses urls", () =>
-     same("Link to <https://prosemirror.net>",
+     same("Link to https://prosemirror.net",
           doc(p("Link to ", link({href: "https://prosemirror.net"}, "https://prosemirror.net")))))
 
   it("correctly serializes relative urls", () => {
-    same("[foo.html](foo.html)",
+    same("link:foo.html[foo.html]",
          doc(p(link({href: "foo.html"}, "foo.html"))))
   })
 
   it("can handle link titles", () => {
-    same('[a](x.html "title \\"quoted\\"")',
+    same('link:x.html[title "quoted"]',
          doc(p(link({href: "x.html", title: 'title "quoted"'}, "a"))))
   })
 
   it("doesn't escape underscores in link", () => {
-    same('[link](http://foo.com/a_b_c)',
+    same('link:http://foo.com/a_b_c[link]',
          doc(p(link({href: "http://foo.com/a_b_c"}, "link"))))
   })
 
   it("parses emphasized urls", () =>
-     same("Link to *<https://prosemirror.net>*",
+     same("Link to _https://prosemirror.net_",
           doc(p("Link to ", em(link({href: "https://prosemirror.net"}, "https://prosemirror.net"))))))
 
   it("parses an image", () =>
-     same("Here's an image: ![x](img.png)",
+     same("Here's an image: image:img.png[x]",
           doc(p("Here's an image: ", img()))))
 
   it("parses a line break", () =>
-     same("line one\\\nline two",
+     same("line one +\nline two",
           doc(p("line one", br(), "line two"))))
 
   it("parses a horizontal rule", () =>
-     same("one two\n\n---\n\nthree",
+     same("one two\n\n'''\n\nthree",
           doc(p("one two"), hr(), p("three"))))
 
   it("ignores HTML tags", () =>
@@ -163,11 +163,11 @@ describe("markdown", () => {
 
   it("preserves list tightness", () => {
     same("* foo\n* bar", doc(ul({tight: true}, li(p("foo")), li(p("bar")))))
-    same("1. foo\n2. bar", doc(ol({tight: true}, li(p("foo")), li(p("bar")))))
+    same(". foo\n. bar", doc(ol({tight: true}, li(p("foo")), li(p("bar")))))
   })
 
   it("doesn't put a code block after a list item inside the list item", () =>
-     same("* list item\n\n```\ncode\n```",
+     same("* list item\n\n----\ncode\n----",
           doc(ul({tight: true}, li(p("list item"))), pre("code"))))
 
   it("doesn't escape characters in code", () =>
@@ -196,30 +196,30 @@ describe("markdown", () => {
 
   // Issue #73
   it("escape ! in front of links", () =>
-    serialize(doc(p("!", a("text"))), "\\![text](foo)"))
+    serialize(doc(p("!", a("text"))), "\\!link:foo[text]"))
 
   // Issue #78
   it("escape of URL in links and images", () => {
-    serialize(doc(p(a({href: "foo):"}, "link"))), "[link](foo\\):)")
-    serialize(doc(p(a({href: "(foo"}, "link"))), "[link](\\(foo)")
-    serialize(doc(p(img({src: "foo):"}))), "![x](foo\\):)")
-    serialize(doc(p(img({src: "(foo"}))), "![x](\\(foo)")
-    serialize(doc(p(a({title: "bar", href: "foo%20\""}, "link"))), "[link](foo%20\\\" \"bar\")")
+    serialize(doc(p(a({href: "foo):"}, "link"))), "link:foo\\):[link]")
+    serialize(doc(p(a({href: "(foo"}, "link"))), "link:\\(foo[link]")
+    serialize(doc(p(img({src: "foo):"}))), "image:foo\\):[x]")
+    serialize(doc(p(img({src: "(foo"}))), "image:\\(foo[x]")
+    serialize(doc(p(a({title: "bar", href: "foo%20\""}, "link"))), "link:foo%20\\\"[link]")
   })
 
   it("escapes extra characters from options", () => {
-    let markdownSerializer = new MarkdownSerializer(defaultMarkdownSerializer.nodes,
-                                                    defaultMarkdownSerializer.marks,
+    let asciidocSerializer = new AsciiDocSerializer(defaultAsciiDocSerializer.nodes,
+                                                    defaultAsciiDocSerializer.marks,
                                                     {escapeExtraCharacters: /[\|!]/g})
-    ist(markdownSerializer.serialize(doc(p("foo|bar!"))), "foo\\|bar\\!")
+    ist(asciidocSerializer.serialize(doc(p("foo|bar!"))), "foo\\|bar\\!")
   })
 
   it("escapes list markers inside lists", () => {
-    same("* 1\\. hi\n\n* x", doc(ul(li(p("1. hi")), li(p("x")))))
+    same("* 1. hi\n\n* x", doc(ul(li(p("1. hi")), li(p("x")))))
   })
 
   it("does not escape list markers in the middle of paragraphs", () => {
-    same("123 [0. com](foo)\n\n123 [2. 2](foo)",
+    same("123 link:0.com[0. com]\n\n123 link:2.com[2. 2]",
          doc(p("123 ", a("0. com")), p("123 ", a("2. 2"))))
   })
 
@@ -229,27 +229,27 @@ describe("markdown", () => {
 
   // Issue #105
   it("escapes ATX heading markers with space after them", () => {
-    same("\\### text", doc(p("### text")))
+    same("= text", doc(p("= text")))
   })
 
   it("escapes ATX heading markers followed by the end of line", () => {
-    same("\\###", doc(p("###")))
+    same("=", doc(p("=")))
   })
 
   it("does not escape ATX heading markers without space after them", () => {
-    same("#hashtag", doc(p("#hashtag")))
+    same("=hashtag", doc(p("=hashtag")))
   })
 
   it("does not escape ATX heading markers consisting of more than 6 in a sequence", () => {
-    same("#######", doc(p("#######")))
+    same("=======", doc(p("=======")))
   })
 
   it("keeps Unicode space after ATX heading markers when escaping", () => {
-    same("\\#　こんにちは", doc(p("#　こんにちは")))
+    same("=　こんにちは", doc(p("=　こんにちは")))
   })
 
   it("doesn't escape block-start characters in header", () => {
-    same("# 1. foo", doc(h1("1. foo")))
+    same("= 1. foo", doc(h1("1. foo")))
   })
   it("doesn't escape +++", () => {
     same("+++", doc(p("+++")))
@@ -257,12 +257,12 @@ describe("markdown", () => {
   
   // Issue #88
   it("code block fence adjusts to content", () => {
-    same("````\n```\ncode\n```\n````", doc(pre("```\ncode\n```")))
+    same("----\n----\ncode\n----\n----", doc(pre("----\ncode\n----")))
   })
 
   it("parses a code block ends with empty line", () => {
     const originalText = "1\n"
-    const mdText = defaultMarkdownSerializer.serialize(doc(schema.node("code_block", {params: ""}, [schema.text(originalText)])))
-    same(mdText, doc(schema.node("code_block", {params: ""}, [schema.text(originalText)])))
+    const adocText = defaultAsciiDocSerializer.serialize(doc(schema.node("code_block", {params: ""}, [schema.text(originalText)])))
+    same(adocText, doc(schema.node("code_block", {params: ""}, [schema.text(originalText)])))
   })
 })

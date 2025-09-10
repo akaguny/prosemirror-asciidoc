@@ -1,5 +1,5 @@
 import {builders, NodeBuilder, MarkBuilder} from "prosemirror-test-builder"
-import {schema} from "prosemirror-markdown"
+import {schema} from "prosemirror-asciidoc"
 
 const b = builders(schema, {
   p: {nodeType: "paragraph"},

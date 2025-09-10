@@ -1,8 +1,7 @@
 import {Schema} from "prosemirror-model"
 import type {MarkSpec} from "prosemirror-model"
 
-/// Document schema for the data model used by CommonMark.
-export const schema = new Schema({
+export const asciidocSchema = new Schema({
   nodes: {
     doc: {
       content: "block+"

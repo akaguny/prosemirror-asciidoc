@@ -1,0 +1,23 @@
+{
+  "name": "demo",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@types/prosemirror-dev-tools": "^3.0.6",
+    "typescript": "~5.8.3",
+    "vite": "^7.1.2"
+  },
+  "dependencies": {
+    "prosemirror-dev-tools": "^4.2.0",
+    "prosemirror-state": "^1.4.3",
+    "prosemirror-view": "^1.41.0"
+  }
+}

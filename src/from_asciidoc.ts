@@ -1,5 +1,5 @@
 import Asciidoctor from 'asciidoctor';
-import {schema} from "./schema"
+import { asciidocSchema } from "./schema"
 import {Mark, MarkType, Node, Attrs, Schema, NodeType} from "prosemirror-model"
 
 function maybeMerge(a: Node, b: Node): Node | undefined {
@@ -462,4 +462,4 @@ export class AsciiDocParser {
 }
 
 /// A parser parsing unextended AsciiDoc, producing a document in the basic schema.
-export const defaultAsciiDocParser = new AsciiDocParser(schema)
+export const defaultAsciiDocParser = new AsciiDocParser(asciidocSchema)

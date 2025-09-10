@@ -17,6 +17,9 @@
   },
   "dependencies": {
     "prosemirror-state": "^1.4.3",
-    "prosemirror-view": "^1.41.0"
+    "prosemirror-view": "^1.41.0",
+    "prosemirror-keymap": "^1.2.2",
+    "prosemirror-commands": "^1.6.2",
+    "prosemirror-history": "^1.4.1"
   }
 }

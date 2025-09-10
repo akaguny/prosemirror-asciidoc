@@ -42,6 +42,7 @@ function initializeEditor() {
   }
 
   const customKeymap = {
+    'Mod-1': setBlockType(asciidocSchema.nodes.heading, { level: 1 }),
     'Mod-2': setBlockType(asciidocSchema.nodes.heading, { level: 2 }),
     'Mod-3': setBlockType(asciidocSchema.nodes.heading, { level: 3 }),
     'Mod-b': toggleMark(asciidocSchema.marks.strong),

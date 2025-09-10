@@ -16,7 +16,6 @@
     "vite": "^7.1.2"
   },
   "dependencies": {
-    "prosemirror-dev-tools": "^4.2.0",
     "prosemirror-state": "^1.4.3",
     "prosemirror-view": "^1.41.0"
   }

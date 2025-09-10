@@ -24,7 +24,9 @@
     "url": "git://github.com/prosemirror/prosemirror-markdown.git"
   },
   "dependencies": {
-    "asciidoctor": "^3.0.4",
+    "asciidoctor": "^3.0.4"
+  },
+  "peerDependencies": {
     "prosemirror-model": "^1.25.3"
   },
   "devDependencies": {

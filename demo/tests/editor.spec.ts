@@ -18,7 +18,7 @@ test.describe('Bidirectional Synchronization Stress Test', () => {
 
     // Since we cannot easily simulate changes in ProseMirror editor via Playwright,
     // we'll test the reverse direction by making a change in textarea and verifying sync
-    const updatedContent = paragraphInEditor + '\n\nAdditional paragraph with *more bold* and _more italic_.';
+    const updatedContent = initialText + '\n\nAdditional paragraph with *more bold* and _more italic_.';
     await paragraphInEditor.click({
       delay: 10
     })

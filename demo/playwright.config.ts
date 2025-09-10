@@ -4,7 +4,6 @@ export default defineConfig({
   testDir: './tests',
   use: {
     baseURL: 'http://localhost:5174',
-    headless: false,
     
   },
   
@@ -12,6 +11,7 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      
     },
-  ],
+  ]
 });

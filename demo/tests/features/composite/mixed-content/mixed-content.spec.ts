@@ -19,7 +19,7 @@ import { EditorPage } from '../../../page-objects/EditorPage';
 import { TestDataProvider } from '../../shared/utils/TestDataProvider';
 import { ContentValidator } from '../../shared/utils/ContentValidator';
 import { TestConfig } from '../../shared/utils/test-config';
-import { expectNoErrors } from '../../shared/utils/assertion-helpers';
+import '../../shared/utils/assertion-helpers';
 
 const testWithEditor = test.extend<{
   editorPage: EditorPage;
@@ -41,8 +41,8 @@ testWithEditor.describe('Mixed Content Feature', () => {
   testWithEditor.afterEach(async ({ editorPage }) => {
     // Verify no errors occurred during test
     expect(editorPage.hasErrors()).toBe(false);
-    expectNoErrors(editorPage.getErrors());
-    expectNoErrors(editorPage.getConsoleErrors());
+    expect(editorPage.getErrors()).toHaveNoErrors();
+    expect(editorPage.getConsoleErrors()).toHaveNoErrors();
   });
 
   testWithEditor.describe('Paragraphs with Formatting', () => {

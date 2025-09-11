@@ -12,14 +12,12 @@
  * - Formatting preservation
  *
  * Regression Markers:
- * - Issue #303: Formatting rendering
+ *
  */
 
 import { test, expect } from '@playwright/test';
 import { EditorPage } from '../../../page-objects/EditorPage';
 import { ContentValidator } from '../../shared/utils/ContentValidator';
-import { TestDataProvider } from '../../shared/utils/TestDataProvider';
-import { TestConfig } from '../../shared/utils/test-config';
 
 const testWithEditor = test.extend<{
   editorPage: EditorPage;

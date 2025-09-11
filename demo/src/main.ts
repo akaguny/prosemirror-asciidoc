@@ -1,5 +1,5 @@
 import './style.css'
-import { EditorState } from 'prosemirror-state'
+import { EditorState, Transaction } from 'prosemirror-state'
 import { EditorView } from 'prosemirror-view'
 import { asciidocSchema, defaultAsciiDocParser, defaultAsciiDocSerializer } from '../../dist/index.js'
 import { keymap } from 'prosemirror-keymap'
@@ -10,7 +10,7 @@ let editorView: EditorView | null = null
 let outputTextarea: HTMLTextAreaElement | null = null
 
 // Custom command to create unordered list
-function createUnorderedList(state, dispatch) {
+function createUnorderedList(state: EditorState, dispatch?: (tr: Transaction) => void): boolean {
   const { $from, $to } = state.selection
   const range = $from.blockRange($to)
 
@@ -27,7 +27,7 @@ function createUnorderedList(state, dispatch) {
 }
 
 // Custom command to create ordered list
-function createOrderedList(state, dispatch) {
+function createOrderedList(state: EditorState, dispatch?: (tr: Transaction) => void): boolean {
   const { $from, $to } = state.selection
   const range = $from.blockRange($to)
 
@@ -44,7 +44,7 @@ function createOrderedList(state, dispatch) {
 }
 
 // Custom command to create link
-function createLink(state, dispatch) {
+function createLink(state: EditorState, dispatch?: (tr: Transaction) => void): boolean {
   const href = prompt('Enter the URL:')
   if (!href) return false
 
@@ -96,13 +96,13 @@ function initializeEditor() {
   const prosemirror = document.getElementById('editor')!
   outputTextarea = document.getElementById('output') as HTMLTextAreaElement
 
-  const updateOutput = () => {
+  const updateOutput = (): void => {
     if (editorView && outputTextarea) {
       outputTextarea.value = defaultAsciiDocSerializer.serialize(editorView.state.doc)
     }
   }
 
-  const customKeymap = {
+  const customKeymap: Record<string, (state: EditorState, dispatch?: (tr: Transaction) => void) => boolean> = {
     'Mod-1': setBlockType(asciidocSchema.nodes.heading, { level: 1 }),
     'Mod-2': setBlockType(asciidocSchema.nodes.heading, { level: 2 }),
     'Mod-3': setBlockType(asciidocSchema.nodes.heading, { level: 3 }),
@@ -120,7 +120,7 @@ function initializeEditor() {
       doc: defaultAsciiDocParser.parse(""),
       plugins: [keymap(customKeymap), keymap(baseKeymap), history()]
     }),
-    dispatchTransaction: (transaction) => {
+    dispatchTransaction: (transaction: Transaction) => {
       if (!editorView) return
 
       const newState = editorView.state.apply(transaction)

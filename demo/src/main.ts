@@ -2,7 +2,6 @@ import './style.css'
 import { EditorState } from 'prosemirror-state'
 import { EditorView } from 'prosemirror-view'
 import { asciidocSchema, defaultAsciiDocParser, defaultAsciiDocSerializer } from '../../dist/index.js'
-import { asciidocTextFormattingandPunctuation } from './sampleAsciiDoc.js'
 import { keymap } from 'prosemirror-keymap'
 import { baseKeymap, toggleMark, setBlockType } from 'prosemirror-commands'
 import { history } from 'prosemirror-history'
@@ -11,7 +10,7 @@ let editorView: EditorView | null = null
 let outputTextarea: HTMLTextAreaElement | null = null
 
 // Custom command to create unordered list
-function createUnorderedList(state: any, dispatch: any) {
+function createUnorderedList(state, dispatch) {
   const { $from, $to } = state.selection
   const range = $from.blockRange($to)
 
@@ -28,7 +27,7 @@ function createUnorderedList(state: any, dispatch: any) {
 }
 
 // Custom command to create ordered list
-function createOrderedList(state: any, dispatch: any) {
+function createOrderedList(state, dispatch) {
   const { $from, $to } = state.selection
   const range = $from.blockRange($to)
 
@@ -45,7 +44,7 @@ function createOrderedList(state: any, dispatch: any) {
 }
 
 // Custom command to create link
-function createLink(state: any, dispatch: any) {
+function createLink(state, dispatch) {
   const href = prompt('Enter the URL:')
   if (!href) return false
 
@@ -118,7 +117,7 @@ function initializeEditor() {
   editorView = new EditorView(prosemirror, {
     state: EditorState.create({
       schema: asciidocSchema,
-      doc: defaultAsciiDocParser.parse(asciidocTextFormattingandPunctuation),
+      doc: defaultAsciiDocParser.parse(""),
       plugins: [keymap(customKeymap), keymap(baseKeymap), history()]
     }),
     dispatchTransaction: (transaction) => {

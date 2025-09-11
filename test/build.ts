@@ -1,10 +1,12 @@
 import {builders, NodeBuilder, MarkBuilder} from "prosemirror-test-builder"
-import {schema} from "prosemirror-asciidoc"
+import { asciidocSchema } from "../src/schema"
 
-const b = builders(schema, {
+const b = builders(asciidocSchema, {
   p: {nodeType: "paragraph"},
   h1: {nodeType: "heading", level: 1},
   h2: {nodeType: "heading", level: 2},
+  h3: {nodeType: "heading", level: 3},
+  h4: {nodeType: "heading", level: 4},
   hr: {nodeType: "horizontal_rule"},
   li: {nodeType: "list_item"},
   ol: {nodeType: "ordered_list"},
@@ -14,7 +16,7 @@ const b = builders(schema, {
   a: {markType: "link", href: "foo"},
   br: {nodeType: "hard_break"},
   img: {nodeType: "image", src: "img.png", alt: "x"}
-}) as any
+})
 
 export const doc: NodeBuilder = b.doc
 export const p: NodeBuilder = b.p

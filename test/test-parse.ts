@@ -2,7 +2,7 @@ import {eq} from "prosemirror-test-builder"
 import {Node} from "prosemirror-model"
 import ist from "ist"
 
-import {schema, defaultAsciiDocParser, defaultAsciiDocSerializer, AsciiDocSerializer} from "prosemirror-asciidoc"
+import {asciidocSchema, defaultAsciiDocParser, defaultAsciiDocSerializer, AsciiDocSerializer} from "../src/index.js"
 
 import {doc, blockquote, h1, h2, p, hr, li, ol, ol3, ul, pre, em, strong, code, a, link, br, img} from "./build.js"
 
@@ -53,7 +53,7 @@ describe("asciidoc", () => {
 
   it("parses a code block", () =>
      same("Some code:\n\n----\nHere it is\n----\n\nPara",
-          doc(p("Some code:"), schema.node("code_block", {params: ""}, [schema.text("Here it is")]), p("Para"))))
+          doc(p("Some code:"), asciidocSchema.node("code_block", {params: ""}, [asciidocSchema.text("Here it is")]), p("Para"))))
 
   it("parses an intended code block", () =>
      parse("Some code:\n\n    Here it is\n\nPara",
@@ -61,7 +61,7 @@ describe("asciidoc", () => {
 
   it("parses a fenced code block with info string", () =>
      same("foo\n\n[source,javascript]\n----\n1\n----",
-          doc(p("foo"), schema.node("code_block", {params: "javascript"}, [schema.text("1")]))))
+          doc(p("foo"), asciidocSchema.node("code_block", {params: "javascript"}, [asciidocSchema.text("1")]))))
 
   it("parses inline marks", () =>
      same("Hello. Some _em_ text, some *strong* text, and some `code`",
@@ -262,7 +262,7 @@ describe("asciidoc", () => {
 
   it("parses a code block ends with empty line", () => {
     const originalText = "1\n"
-    const adocText = defaultAsciiDocSerializer.serialize(doc(schema.node("code_block", {params: ""}, [schema.text(originalText)])))
-    same(adocText, doc(schema.node("code_block", {params: ""}, [schema.text(originalText)])))
+    const adocText = defaultAsciiDocSerializer.serialize(doc(asciidocSchema.node("code_block", {params: ""}, [asciidocSchema.text(originalText)])))
+    same(adocText, doc(asciidocSchema.node("code_block", {params: ""}, [asciidocSchema.text(originalText)])))
   })
 })

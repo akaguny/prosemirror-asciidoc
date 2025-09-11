@@ -118,7 +118,7 @@ function initializeEditor() {
   editorView = new EditorView(prosemirror, {
     state: EditorState.create({
       schema: asciidocSchema,
-      doc: defaultAsciiDocParser.parse(sampleAsciiDoc),
+      doc: defaultAsciiDocParser.parse(asciidocTextFormattingandPunctuation),
       plugins: [keymap(customKeymap), keymap(baseKeymap), history()]
     }),
     dispatchTransaction: (transaction) => {

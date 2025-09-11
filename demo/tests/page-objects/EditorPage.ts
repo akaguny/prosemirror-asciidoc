@@ -80,7 +80,7 @@ export class EditorPage {
   }
 
   async waitForSync() {
-    await this.page.waitForTimeout(300); // Reduced from 500 for speed
+    await this.page.waitForTimeout(50); // Reduced from 500 for speed
   }
 
   async pasteIntoOutput(text: string) {

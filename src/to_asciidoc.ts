@@ -372,6 +372,9 @@ export const defaultAsciiDocSerializer = new AsciiDocSerializer({
     state.closeBlock(node)
   },
   code_block(state, node) {
+    if (node.attrs.params) {
+      state.write(`[source,${node.attrs.params}]\n`);
+    }
     state.write("----\n")
     state.text(node.textContent, false)
     state.write("\n----")

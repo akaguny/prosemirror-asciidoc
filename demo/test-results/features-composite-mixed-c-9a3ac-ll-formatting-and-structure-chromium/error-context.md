@@ -1,0 +1,41 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - button "H2" [ref=e5] [cursor=pointer]
+    - button "H3" [ref=e6] [cursor=pointer]
+    - button "UL" [ref=e7] [cursor=pointer]
+    - button "OL" [ref=e8] [cursor=pointer]
+    - button "Code" [ref=e9] [cursor=pointer]
+    - button "Bold" [ref=e10] [cursor=pointer]
+    - button "Italic" [ref=e11] [cursor=pointer]
+    - button "Link" [ref=e12] [cursor=pointer]
+  - generic [active] [ref=e14]:
+    - paragraph [ref=e15]: = Document Title
+    - paragraph [ref=e16]
+    - paragraph [ref=e17]: This is an introductory paragraph with *bold* and _italic_ text.
+    - paragraph [ref=e18]
+    - paragraph [ref=e19]: == Section with Lists
+    - paragraph [ref=e20]
+    - paragraph [ref=e21]: "* List item with *bold* formatting"
+    - paragraph [ref=e22]: "* Another item with _italic_ text"
+    - paragraph [ref=e23]: "** Nested item with `code`"
+    - paragraph [ref=e24]: "* Final item"
+    - paragraph [ref=e25]
+    - paragraph [ref=e26]: . Numbered list
+    - paragraph [ref=e27]: . First numbered item
+    - paragraph [ref=e28]: . Second numbered item with *formatting*
+    - paragraph [ref=e29]
+    - paragraph [ref=e30]: === Subsection with Links
+    - paragraph [ref=e31]
+    - paragraph [ref=e32]: Check out this [link](https://example.com) and another [reference](#section).
+    - paragraph [ref=e33]
+    - paragraph [ref=e34]: "[source,javascript]"
+    - paragraph [ref=e35]: "----"
+    - paragraph [ref=e36]: "function example() {"
+    - paragraph [ref=e37]: return "complex content";
+    - paragraph [ref=e38]: "}"
+    - paragraph [ref=e39]: "----"
+  - textbox [ref=e40]: "= Document Title This is an introductory paragraph with \\*bold\\* and \\_italic\\_ text. == Section with Lists \\* List item with \\*bold\\* formatting \\* Another item with \\_italic\\_ text \\*\\* Nested item with \\`code\\` \\* Final item . Numbered list . First numbered item . Second numbered item with \\*formatting\\* === Subsection with Links Check out this \\[link\\](https://example.com) and another \\[reference\\](#section). \\[source,javascript\\] \\---- function example() { return \"complex content\"; } \\----"
+```

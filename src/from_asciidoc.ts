@@ -244,13 +244,17 @@ class AsciiDocParseState {
   }
 
   parseLiteral(block: any) {
-    this.openNode(this.schema.nodes.code_block);
+    const attrs = block.getAttributes ? block.getAttributes() : {};
+    const language = attrs.language || attrs.lang || '';
+    this.openNode(this.schema.nodes.code_block, {params: language});
     this.addText(block.getSource());
     this.closeNode();
   }
 
   parseListing(block: any) {
-    this.openNode(this.schema.nodes.code_block);
+    const attrs = block.getAttributes ? block.getAttributes() : {};
+    const language = attrs.language || attrs.lang || '';
+    this.openNode(this.schema.nodes.code_block, {params: language});
     this.addText(block.getSource());
     this.closeNode();
   }

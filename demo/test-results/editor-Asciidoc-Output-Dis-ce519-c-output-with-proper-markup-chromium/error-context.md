@@ -1,0 +1,50 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - button "H2" [ref=e5] [cursor=pointer]
+    - button "H3" [ref=e6] [cursor=pointer]
+    - button "UL" [ref=e7] [cursor=pointer]
+    - button "OL" [ref=e8] [cursor=pointer]
+    - button "Code" [ref=e9] [cursor=pointer]
+    - button "Bold" [ref=e10] [cursor=pointer]
+    - button "Italic" [ref=e11] [cursor=pointer]
+    - button "Link" [ref=e12] [cursor=pointer]
+  - generic [active] [ref=e14]:
+    - paragraph [ref=e15]: AsciiDoc to ProseMirror Demo
+    - paragraph [ref=e16]: This is a second paragraph.
+    - list [ref=e17]:
+      - listitem [ref=e18]:
+        - paragraph [ref=e19]
+      - listitem [ref=e20]:
+        - paragraph [ref=e21]:
+          - text: <div class="literalblock"> <div class="content"> <pre>This is the second paragraph in the list item.</pre> </div> </div> <div class="literalblock"> <div class="content"> <pre> And here's another paragraph with
+          - strong [ref=e22]: bold
+          - text: text. * Third item</pre> </div>First paragraph.
+        - paragraph [ref=e23]: Second paragraph. </div> <div class="olist arabic"> <ol class="arabic"> <li> <p>First ordered item</p> </li> <li> <p>Second ordered item with nested list</p> <div class="literalblock"> <div class="content"> <pre>This item has a paragraph and a nested list:</pre> </div> </div> <div class="ulist"> <ul> <li> <p>Sub item 1</p> </li> <li> <p>Sub item 2</p> </li> </ul> </div> </li> <li> <p>Third ordered item</p> </li> </ol> </div>
+        - code [ref=e25]: This is the second paragraph in the list item.
+        - code [ref=e27]: And here's another paragraph with *bold* text. * Third item
+        - list [ref=e28]:
+          - listitem [ref=e29]:
+            - paragraph [ref=e30]: First ordered item
+          - listitem [ref=e31]:
+            - paragraph [ref=e32]: Second ordered item with nested list
+            - code [ref=e34]: "This item has a paragraph and a nested list:"
+            - list [ref=e35]:
+              - listitem [ref=e36]:
+                - paragraph [ref=e37]
+              - listitem [ref=e38]:
+                - paragraph [ref=e39]
+          - listitem [ref=e40]:
+            - paragraph [ref=e41]: Third ordered item
+    - paragraph [ref=e42]: "Here's a code block:"
+    - code [ref=e44]: "console.log('Hello, world!'); for (let i = 0; i < 10; i++) { console.log(i); }"
+    - paragraph [ref=e45]:
+      - text: Check out this
+      - link "Example Link" [ref=e46]:
+        - /url: http://example.com
+      - text: for more information.
+    - paragraph [ref=e47]: And a third paragraph with multiple lines.
+  - textbox [ref=e48]: "AsciiDoc to ProseMirror Demo This is a second paragraph. * * <div class=\"literalblock\"> <div class=\"content\"> <pre>This is the second paragraph in the list item.</pre> </div> </div> <div class=\"literalblock\"> <div class=\"content\"> <pre> And here's another paragraph with *bold* text. \\* Third item</pre> </div>First paragraph. Second paragraph. </div> <div class=\"olist arabic\"> <ol class=\"arabic\"> <li> <p>First ordered item</p> </li> <li> <p>Second ordered item with nested list</p> <div class=\"literalblock\"> <div class=\"content\"> <pre>This item has a paragraph and a nested list:</pre> </div> </div> <div class=\"ulist\"> <ul> <li> <p>Sub item 1</p> </li> <li> <p>Sub item 2</p> </li> </ul> </div> </li> <li> <p>Third ordered item</p> </li> </ol> </div> ---- This is the second paragraph in the list item. ---- ---- And here's another paragraph with *bold* text. * Third item ---- 1. First ordered item 2. Second ordered item with nested list ---- This item has a paragraph and a nested list: ---- * * 3. Third ordered item Here's a code block: ---- console.log('Hello, world!'); for (let i = 0; i < 10; i++) { console.log(i); } ---- Check out this link:http://example.com[Example Link] for more information. And a third paragraph with multiple lines."
+```

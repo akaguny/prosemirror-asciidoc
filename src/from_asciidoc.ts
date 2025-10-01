@@ -2,6 +2,40 @@ import Asciidoctor from 'asciidoctor';
 import { asciidocSchema } from "./schema"
 import {Mark, MarkType, Node, Schema, NodeType} from "prosemirror-model"
 import type { Attrs } from "prosemirror-model"
+// TypeScript interfaces for Asciidoctor objects to improve type safety
+interface AsciidoctorDocument {
+  getTitle(): string | undefined;
+  getBlocks(): AsciidoctorBlock[];
+}
+
+interface AsciidoctorBlock {
+  getNodeName(): string;
+  getTitle(): string | undefined;
+  getLevel(): number | undefined;
+  getBlocks(): AsciidoctorBlock[] | undefined;
+  getItems(): AsciidoctorListItem[] | undefined;
+  getSource(): string | undefined;
+  getText(): string | undefined;
+  getContent(): string | undefined;
+  lines: string[] | undefined;
+  getStart(): number | undefined;
+}
+
+interface AsciidoctorListItem {
+  getText(): string | undefined;
+  getContent(): string | undefined;
+  getBlocks(): AsciidoctorBlock[] | undefined;
+  getTerms(): AsciidoctorTerm[] | undefined;
+  getDescription(): AsciidoctorBlock | undefined;
+}
+
+interface AsciidoctorTerm {
+  getText(): string | undefined;
+}
+
+interface AsciidoctorInstance {
+  load(text: string, options?: any): AsciidoctorDocument;
+}
 
 function maybeMerge(a: Node, b: Node): Node | undefined {
   if (a.isText && b.isText && Mark.sameSet(a.marks, b.marks))
@@ -9,19 +43,50 @@ function maybeMerge(a: Node, b: Node): Node | undefined {
 }
 
 // Object used to track the context of a running parse.
+/**
+ * Parser state for converting AsciiDoc content to ProseMirror document nodes.
+ * Maintains the current parsing context including node stack and active marks.
+ */
 class AsciiDocParseState {
   stack: {type: NodeType, attrs: Attrs | null, content: Node[], marks: readonly Mark[]}[]
-  asciidoctor: any;
+  asciidoctor: AsciidoctorInstance;
   hasDocumentTitle: boolean = false;
 
   schema: Schema;
 
+  /**
+   * Creates a new AsciiDoc parser state.
+   * @param schema The ProseMirror schema to use for creating nodes
+   */
   constructor(
     schema: Schema
   ) {
     this.schema = schema;
     this.stack = [{type: schema.topNodeType, attrs: null, content: [], marks: Mark.none}]
     this.asciidoctor = Asciidoctor();
+  }
+
+  /**
+   * Centralized logging method for parser events and errors.
+   * @param level Log level ('info', 'warn', 'error')
+   * @param message Log message
+   * @param context Optional context information
+   */
+  private log(level: 'info' | 'warn' | 'error', message: string, context?: any) {
+    const prefix = `[AsciiDoc Parser]`;
+    const fullMessage = context ? `${prefix} ${message}: ${JSON.stringify(context)}` : `${prefix} ${message}`;
+
+    switch (level) {
+      case 'info':
+        console.info(fullMessage);
+        break;
+      case 'warn':
+        console.warn(fullMessage);
+        break;
+      case 'error':
+        console.error(fullMessage);
+        break;
+    }
   }
 
   top() {
@@ -54,25 +119,30 @@ class AsciiDocParseState {
     top.marks = mark.removeFromSet(top.marks)
   }
 
+  /**
+   * Parse AsciiDoc text into ProseMirror document structure.
+   * @param text The AsciiDoc markup to parse
+   */
   parseAsciidoc(text: string) {
-    let doc = this.asciidoctor.load(text, {doctype: 'article', attributes: { 'leveloffset': '1' }});
+    const document = this.asciidoctor.load(text, {doctype: 'article', attributes: { 'leveloffset': '1' }});
 
     // Check if document has a title
-    this.hasDocumentTitle = !!doc.getTitle();
+    this.hasDocumentTitle = !!document.getTitle();
 
     // Get all blocks
-    const blocks = doc.getBlocks();
+    const blocks = document.getBlocks();
 
     // Only add document title as heading if there are other blocks
     // For simple cases like "= Title", AsciiDoctor treats it as a section, not a document title
     if (this.hasDocumentTitle && blocks.length > 0) {
       // Check if the first block is the document title section
       const firstBlock = blocks[0];
-      if (firstBlock.getNodeName() === 'section' && firstBlock.getTitle() === doc.getTitle()) {
+      const documentTitle = document.getTitle();
+      if (firstBlock.getNodeName() === 'section' && firstBlock.getTitle() === documentTitle) {
         // Skip adding document title as it's already included as the first section
       } else {
         this.openNode(this.schema.nodes.heading, {level: 1});
-        this.addText(doc.getTitle());
+        this.addText(documentTitle || '');
         this.closeNode();
       }
     }
@@ -82,107 +152,87 @@ class AsciiDocParseState {
   }
 
   // Helper method to safely get block content with multiple fallbacks
-  getBlockContent(block: any): string {
-    // Try getSource() first (preferred for literal content)
-    if (typeof block.getSource === 'function') {
-      try {
-        const source = block.getSource();
-        if (source !== undefined && source !== null) {
-          return source;
-        }
-      } catch (e) {
-        // getSource() failed, continue to fallbacks
-      }
-    }
+  getBlockContent(block: AsciidoctorBlock): string {
+    // Define content getters in order of preference
+    const contentGetters = [
+      { name: 'getSource', getter: () => block.getSource?.() },
+      { name: 'getText', getter: () => block.getText?.() },
+      { name: 'getContent', getter: () => block.getContent?.() },
+      { name: 'lines', getter: () => block.lines?.join('\n') }
+    ];
 
-    // Try getText() for simple text content
-    if (typeof block.getText === 'function') {
+    // Try each getter and return the first successful result
+    for (const { name, getter } of contentGetters) {
       try {
-        const text = block.getText();
-        if (text !== undefined && text !== null) {
-          return text;
-        }
-      } catch (e) {
-        // getText() failed, continue to fallbacks
-      }
-    }
-
-    // Try getContent() for HTML content
-    if (typeof block.getContent === 'function') {
-      try {
-        const content = block.getContent();
+        const content = getter();
         if (content !== undefined && content !== null) {
+          this.log('info', `Successfully extracted content using ${name}`, { blockType: block.getNodeName() });
           return content;
         }
-      } catch (e) {
-        // getContent() failed, continue to fallbacks
+      } catch (error) {
+        this.log('warn', `Failed to get content using ${name}`, { blockType: block.getNodeName(), error: error instanceof Error ? error.message : String(error) });
       }
-    }
-
-    // Try lines property as last resort
-    if (block.lines && Array.isArray(block.lines)) {
-      return block.lines.join('\n');
     }
 
     // Return empty string if all methods fail
+    this.log('warn', 'All content extraction methods failed', { blockType: block.getNodeName() });
     return '';
   }
 
-  parseBlocks(blocks: any[]) {
-    for (let block of blocks) {
+  /**
+   * Parse an array of AsciiDoc blocks into ProseMirror nodes.
+   * @param blocks Array of Asciidoctor block objects to parse
+   */
+  parseBlocks(blocks: AsciidoctorBlock[]) {
+    for (const block of blocks) {
       this.parseBlock(block);
     }
   }
 
-  parseBlock(block: any) {
+  /**
+   * Parse a single AsciiDoc block based on its node name.
+   * @param block The Asciidoctor block to parse
+   */
+  parseBlock(block: AsciidoctorBlock) {
     const nodeName = block.getNodeName();
+    const handler = this.getBlockHandler(nodeName);
 
-    switch (nodeName) {
-      case 'paragraph':
-        this.parseParagraph(block);
-        break;
-      case 'section':
-        this.parseSection(block);
-        break;
-      case 'ulist':
-        this.parseUnorderedList(block);
-        break;
-      case 'olist':
-        this.parseOrderedList(block);
-        break;
-      case 'dlist':
-        this.parseDescriptionList(block);
-        break;
-      case 'literal':
-        this.parseLiteral(block);
-        break;
-      case 'listing':
-        this.parseListing(block);
-        break;
-      case 'quote':
-        this.parseQuote(block);
-        break;
-      case 'sidebar':
-        this.parseSidebar(block);
-        break;
-      case 'example':
-        this.parseExample(block);
-        break;
-      case 'preamble':
-        this.parsePreamble(block);
-        break;
-      case 'thematic_break':
-        this.parseThematicBreak(block);
-        break;
-      case 'table':
-        this.parseTable(block);
-        break;
-      default:
-        console.warn('Unknown block type:', nodeName);
+    if (handler) {
+      try {
+        handler.call(this, block);
+        this.log('info', `Successfully parsed block`, { blockType: nodeName });
+      } catch (error) {
+        this.log('error', `Failed to parse block`, { blockType: nodeName, error: error instanceof Error ? error.message : String(error) });
+      }
+    } else {
+      this.log('warn', `Unknown block type encountered`, { blockType: nodeName });
     }
   }
 
-  parseParagraph(block: any) {
+  /**
+   * Get the appropriate handler method for a block type
+   */
+  private getBlockHandler(nodeName: string): ((block: AsciidoctorBlock) => void) | null {
+    const handlers: Record<string, (block: AsciidoctorBlock) => void> = {
+      paragraph: this.parseParagraph,
+      section: this.parseSection,
+      ulist: this.parseUnorderedList,
+      olist: this.parseOrderedList,
+      dlist: this.parseDescriptionList,
+      literal: this.parseLiteral,
+      listing: this.parseListing,
+      quote: this.parseQuote,
+      sidebar: this.parseSidebar,
+      example: this.parseExample,
+      preamble: this.parsePreamble,
+      thematic_break: this.parseThematicBreak,
+      table: this.parseTable
+    };
+
+    return handlers[nodeName] || null;
+  }
+
+  parseParagraph(block: AsciidoctorBlock) {
     this.openNode(this.schema.nodes.paragraph);
     const content = this.getBlockContent(block);
     if (content) {
@@ -194,7 +244,7 @@ class AsciiDocParseState {
     this.closeNode();
   }
 
-  parseSection(block: any) {
+  parseSection(block: AsciidoctorBlock) {
     let level = 1;
 
     // Try to get the original heading line from block.lines
@@ -221,29 +271,46 @@ class AsciiDocParseState {
     // Note: AsciiDoctor handles document title level adjustment automatically
 
     this.openNode(this.schema.nodes.heading, {level});
-    this.addText(block.getTitle());
+    this.addText(block.getTitle() || '');
     this.closeNode();
 
     // Parse child blocks
-    if (block.getBlocks) {
-      this.parseBlocks(block.getBlocks());
+    const childBlocks = block.getBlocks();
+    if (childBlocks) {
+      this.parseBlocks(childBlocks);
     }
   }
 
-  parseUnorderedList(block: any) {
-    this.openNode(this.schema.nodes.bullet_list);
+  parseUnorderedList(block: AsciidoctorBlock) {
+    this.parseList(block, this.schema.nodes.bullet_list);
+  }
+
+  parseOrderedList(block: AsciidoctorBlock) {
+    const start = block.getStart ? block.getStart() : 1;
+    this.parseList(block, this.schema.nodes.ordered_list, {order: start});
+  }
+
+  /**
+   * Parse a list block with the specified list node type and attributes
+   */
+  private parseList(block: AsciidoctorBlock, listNodeType: NodeType, attrs: Attrs | null = null) {
+    this.openNode(listNodeType, attrs);
     const items = block.getItems ? block.getItems() : [];
-    for (let item of items) {
+    if (items) {
+      this.parseListItems(items);
+    }
+    this.closeNode();
+  }
+
+  /**
+   * Parse list items shared between ordered and unordered lists
+   */
+  private parseListItems(items: AsciidoctorListItem[]) {
+    for (const item of items) {
       this.openNode(this.schema.nodes.list_item);
 
       // Get text content from the item
-      let text = '';
-      if (item.getText) {
-        text = item.getText();
-      } else if (item.getContent) {
-        text = item.getContent();
-      }
-
+      const text = this.getListItemText(item);
       if (text.trim()) {
         this.openNode(this.schema.nodes.paragraph);
         this.parseInline(text);
@@ -251,75 +318,67 @@ class AsciiDocParseState {
       }
 
       // Parse any nested blocks (for nested lists)
-      if (item.getBlocks) {
-        this.parseBlocks(item.getBlocks());
+      const nestedBlocks = item.getBlocks();
+      if (nestedBlocks) {
+        this.parseBlocks(nestedBlocks);
       }
 
       this.closeNode();
     }
-    this.closeNode();
   }
 
-  parseOrderedList(block: any) {
-    const start = (block.getStart && typeof block.getStart === 'function') ? block.getStart() : 1;
-    this.openNode(this.schema.nodes.ordered_list, {order: start});
-    const items = block.getItems ? block.getItems() : [];
-    for (let item of items) {
-      this.openNode(this.schema.nodes.list_item);
-      const text = item.getText ? item.getText() : '';
-      if (text.trim()) {
-        this.openNode(this.schema.nodes.paragraph);
-        this.parseInline(text);
-        this.closeNode();
-      }
-      if (item.getBlocks) {
-        this.parseBlocks(item.getBlocks());
-      }
-      this.closeNode();
+  /**
+   * Extract text content from a list item
+   */
+  private getListItemText(item: AsciidoctorListItem): string {
+    if (item.getText) {
+      return item.getText() || '';
+    } else if (item.getContent) {
+      return item.getContent() || '';
     }
-    this.closeNode();
+    return '';
   }
 
-  parseDescriptionList(block: any) {
+  parseDescriptionList(block: AsciidoctorBlock) {
     // Handle description lists by converting to paragraphs with formatted text
     // Since the basic schema doesn't have a dedicated description list node,
     // we'll format them as readable paragraphs
     const items = block.getItems ? block.getItems() : [];
-    for (let item of items) {
-      this.openNode(this.schema.nodes.paragraph);
+    if (items) {
+      for (let item of items) {
+        this.openNode(this.schema.nodes.paragraph);
 
-      // Get the term and definition
-      const term = item.getTerms ? item.getTerms()[0]?.getText?.() : '';
-      const definition = item.getDescription ? item.getDescription()?.getContent?.() : '';
+        // Get the term and definition
+        const terms = item.getTerms ? item.getTerms() : [];
+        const term = terms && terms.length > 0 ? terms[0].getText() || '' : '';
+        const description = item.getDescription ? item.getDescription() : null;
+        const definition = description ? description.getContent() || '' : '';
 
-      if (term) {
-        this.openMark(this.schema.marks.strong.create());
-        this.addText(term);
-        this.closeMark(this.schema.marks.strong);
-        this.addText(': ');
-      }
-
-      if (definition) {
-        // Parse the definition content (could contain inline formatting)
-        if (typeof definition === 'string') {
-          this.parseInline(definition);
-        } else {
-          this.addText(definition || '');
+        if (term) {
+          this.openMark(this.schema.marks.strong.create());
+          this.addText(term);
+          this.closeMark(this.schema.marks.strong);
+          this.addText(': ');
         }
-      }
 
-      this.closeNode();
+        if (definition) {
+          // Parse the definition content (could contain inline formatting)
+          this.parseInline(definition);
+        }
+
+        this.closeNode();
+      }
     }
   }
 
-  parseLiteral(block: any) {
+  parseLiteral(block: AsciidoctorBlock) {
     this.openNode(this.schema.nodes.code_block);
     const content = this.getBlockContent(block);
     this.addText(content);
     this.closeNode();
   }
 
-  parseListing(block: any) {
+  parseListing(block: AsciidoctorBlock) {
     // Include the title if it exists
     const title = block.getTitle ? block.getTitle() : '';
     if (title) {
@@ -336,36 +395,48 @@ class AsciiDocParseState {
     this.closeNode();
   }
 
-  parseQuote(block: any) {
+  parseQuote(block: AsciidoctorBlock) {
     this.openNode(this.schema.nodes.blockquote);
-    this.parseBlocks(block.getBlocks());
+    const blocks = block.getBlocks();
+    if (blocks) {
+      this.parseBlocks(blocks);
+    }
     this.closeNode();
   }
 
-  parseSidebar(block: any) {
+  parseSidebar(block: AsciidoctorBlock) {
     // Sidebars are not directly supported, treat as blockquote
     this.openNode(this.schema.nodes.blockquote);
-    this.parseBlocks(block.getBlocks());
+    const blocks = block.getBlocks();
+    if (blocks) {
+      this.parseBlocks(blocks);
+    }
     this.closeNode();
   }
 
-  parseExample(block: any) {
+  parseExample(block: AsciidoctorBlock) {
     // Examples are not directly supported, treat as blockquote
     this.openNode(this.schema.nodes.blockquote);
-    this.parseBlocks(block.getBlocks());
+    const blocks = block.getBlocks();
+    if (blocks) {
+      this.parseBlocks(blocks);
+    }
     this.closeNode();
   }
 
-  parsePreamble(block: any) {
+  parsePreamble(block: AsciidoctorBlock) {
     // Preamble is introductory content, treat as regular content
-    this.parseBlocks(block.getBlocks());
+    const blocks = block.getBlocks();
+    if (blocks) {
+      this.parseBlocks(blocks);
+    }
   }
 
-  parseThematicBreak(block: any) {
+  parseThematicBreak(block: AsciidoctorBlock) {
     this.addNode(this.schema.nodes.horizontal_rule, null);
   }
 
-  parseTable(block: any) {
+  parseTable(block: AsciidoctorBlock) {
     // Tables are not directly supported in the basic schema, treat as paragraph
     // This is a simple fallback - in a real implementation you'd want proper table support
     this.openNode(this.schema.nodes.paragraph);
@@ -389,169 +460,202 @@ class AsciiDocParseState {
   }
 
   parseInline(text: string) {
-    // Check if the original text contains backslash escapes
     const hasEscapes = text.includes('\\');
+    const processedText = this.handleEscapedCharacters(text);
 
-    // First, handle escaped characters that should not be processed as formatting
-    let processedText = text.replace(/\\(\*|_|`|\+|\\)/g, '\u0000$1'); // Use null character as escape marker
+    if (hasEscapes) {
+      // If original text had escapes, don't apply formatting
+      const cleanedText = this.unescapeCharacters(processedText);
+      this.addText(cleanedText);
+    } else {
+      this.parseInlineContent(processedText);
+    }
+  }
 
-    // Improved inline parsing for AsciiDoc
-    // Handle links first, then other formatting to avoid conflicts
-    let remaining = processedText;
+  /**
+   * Handle escaped characters by marking them with null character
+   */
+  private handleEscapedCharacters(text: string): string {
+    return text.replace(/\\(\*|_|`|\+|\\)/g, '\u0000$1');
+  }
 
-    // Handle links: link:URL[Text]
+  /**
+   * Remove escape markers from text
+   */
+  private unescapeCharacters(text: string): string {
+    return text.replace(/\u0000(\*|_|`|\+|\\)/g, '$1');
+  }
+
+  /**
+   * Parse inline content, handling links and formatting
+   */
+  private parseInlineContent(text: string) {
+    const parts = this.splitByLinks(text);
+
+    for (const part of parts) {
+      if (!part) continue;
+
+      if (this.isLinkPart(part)) {
+        this.parseLink(part);
+      } else {
+        this.parseSimpleFormatting(part);
+      }
+    }
+  }
+
+  /**
+   * Split text by links, preserving link markers
+   */
+  private splitByLinks(text: string): string[] {
     const linkRegex = /link:([^\[]*)\[([^\]]*)\]/g;
+    const textSegments: string[] = [];
     let lastIndex = 0;
-    const parts: string[] = [];
 
     let match;
-    while ((match = linkRegex.exec(remaining)) !== null) {
+    while ((match = linkRegex.exec(text)) !== null) {
       // Add text before the link
       if (match.index > lastIndex) {
-        parts.push(remaining.slice(lastIndex, match.index));
+        textSegments.push(text.slice(lastIndex, match.index));
       }
       // Add the link as a special marker
-      parts.push(`__LINK__${match[1]}__${match[2]}__LINK__`);
+      textSegments.push(`__LINK__${match[1]}__${match[2]}__LINK__`);
       lastIndex = linkRegex.lastIndex;
     }
 
     // Add remaining text
-    if (lastIndex < remaining.length) {
-      parts.push(remaining.slice(lastIndex));
+    if (lastIndex < text.length) {
+      textSegments.push(text.slice(lastIndex));
     }
 
-    // Process each part
-    for (let part of parts) {
-      if (!part) continue;
+    return textSegments;
+  }
 
-      if (part.startsWith('__LINK__') && part.endsWith('__LINK__')) {
-        // Handle link
-        const linkContent = part.slice(8, -8);
-        const [href, linkText] = linkContent.split('__');
-        this.openMark(this.schema.marks.link.create({href}));
-        this.addText(linkText);
-        this.closeMark(this.schema.marks.link);
-      } else {
-        // Handle other formatting: *strong*, _italic_, `code`, +code+
-        if (hasEscapes) {
-          // If original text had escapes, don't apply formatting
-          let cleanedText = part.replace(/\u0000(\*|_|`|\+|\\)/g, '$1');
-          this.addText(cleanedText);
-        } else {
-          this.parseSimpleFormatting(part);
-        }
-      }
-    }
+  /**
+   * Check if a part is a link marker
+   */
+  private isLinkPart(part: string): boolean {
+    return part.startsWith('__LINK__') && part.endsWith('__LINK__');
+  }
+
+  /**
+   * Parse a link part
+   */
+  private parseLink(linkPart: string) {
+    const linkContent = linkPart.slice(8, -8);
+    const [href, linkText] = linkContent.split('__');
+    this.openMark(this.schema.marks.link.create({href}));
+    this.addText(linkText);
+    this.closeMark(this.schema.marks.link);
   }
 
   parseSimpleFormatting(text: string) {
-    // Handle escaped characters (marked with null character)
-    let processedText = text.replace(/\u0000(\*|_|`|\+|\\)/g, '$1');
+    const processedText = this.unescapeCharacters(text);
 
-    // If the text contains backslashes (indicating escaped content), clean them up and don't apply formatting
-    if (processedText.includes('\\')) {
-      // Clean up backslashes that are not part of formatting
-      let cleanedText = processedText.replace(/\\(\*|_)/g, '$1');
-      this.addText(cleanedText);
+    if (this.hasUnprocessedEscapes(processedText)) {
+      this.addText(this.cleanUnprocessedEscapes(processedText));
       return;
     }
 
-    // Handle nested and overlapping formatting more carefully
-    let parts = processedText.split(/(\*.*?\*|_.*?_|`.*?`|\+.*?\+)/g);
+    const parts = this.splitByFormattingPatterns(processedText);
+    this.processFormattingParts(parts);
+  }
 
-    for (let part of parts) {
+  /**
+   * Check if text contains unprocessed backslash escapes
+   */
+  private hasUnprocessedEscapes(text: string): boolean {
+    return text.includes('\\');
+  }
+
+  /**
+   * Clean up backslashes that are not part of formatting
+   */
+  private cleanUnprocessedEscapes(text: string): string {
+    return text.replace(/\\(\*|_)/g, '$1');
+  }
+
+  /**
+   * Split text by formatting patterns while preserving the patterns
+   */
+  private splitByFormattingPatterns(text: string): string[] {
+    return text.split(/(\*.*?\*|_.*?_|`.*?`|\+.*?\+)/g);
+  }
+
+  /**
+   * Process each part for formatting marks
+   */
+  private processFormattingParts(parts: string[]) {
+    for (const part of parts) {
       if (!part) continue;
 
-      // Check for formatting marks, but be more careful about word boundaries
-      if (part.startsWith('*') && part.endsWith('*') && part.length > 2) {
-        const inner = part.slice(1, -1);
-        // Avoid treating * in the middle of words as formatting
-        if (!/\w/.test(inner) || inner.length > 1) {
-          this.openMark(this.schema.marks.strong.create());
-          this.parseSimpleFormatting(inner); // Recursively handle nested formatting
-          this.closeMark(this.schema.marks.strong);
-        } else {
-          this.addText(part);
-        }
-      } else if (part.startsWith('_') && part.endsWith('_') && part.length > 2) {
-        const inner = part.slice(1, -1);
-        if (!/\w/.test(inner) || inner.length > 1) {
-          this.openMark(this.schema.marks.em.create());
-          this.parseSimpleFormatting(inner);
-          this.closeMark(this.schema.marks.em);
-        } else {
-          this.addText(part);
-        }
-      } else if (part.startsWith('`') && part.endsWith('`') && part.length > 2) {
-        this.openMark(this.schema.marks.code.create());
-        this.addText(part.slice(1, -1));
-        this.closeMark(this.schema.marks.code);
-      } else if (part.startsWith('+') && part.endsWith('+') && part.length > 2) {
-        this.openMark(this.schema.marks.code.create());
-        this.addText(part.slice(1, -1));
-        this.closeMark(this.schema.marks.code);
+      const formattingType = this.detectFormattingType(part);
+      if (formattingType) {
+        this.applyFormatting(part, formattingType);
       } else {
         this.addText(part);
       }
     }
   }
 
-  parseHtml(html: string) {
-    // Improved HTML parser for asciidoctor output
-    // Handles nested tags and more formatting options
-    let parts = html.split(/(<[^>]+>[^<]*<\/[^>]+>|<[^>]+\/>)/g);
+  /**
+   * Detect the type of formatting for a part
+   */
+  private detectFormattingType(part: string): 'strong' | 'em' | 'code' | null {
+    if (this.isValidStrongFormatting(part)) return 'strong';
+    if (this.isValidEmFormatting(part)) return 'em';
+    if (this.isValidCodeFormatting(part, '`')) return 'code';
+    if (this.isValidCodeFormatting(part, '+')) return 'code';
+    return null;
+  }
 
-    for (let part of parts) {
-      if (!part) continue;
+  /**
+   * Check if part is valid strong formatting
+   */
+  private isValidStrongFormatting(part: string): boolean {
+    if (!part.startsWith('*') || !part.endsWith('*') || part.length <= 2) return false;
+    const inner = part.slice(1, -1);
+    return !/\w/.test(inner) || inner.length > 1;
+  }
 
-      if (part.startsWith('<strong>') && part.endsWith('</strong>')) {
+  /**
+   * Check if part is valid emphasis formatting
+   */
+  private isValidEmFormatting(part: string): boolean {
+    if (!part.startsWith('_') || !part.endsWith('_') || part.length <= 2) return false;
+    const inner = part.slice(1, -1);
+    return !/\w/.test(inner) || inner.length > 1;
+  }
+
+  /**
+   * Check if part is valid code formatting with given delimiter
+   */
+  private isValidCodeFormatting(part: string, delimiter: string): boolean {
+    return part.startsWith(delimiter) && part.endsWith(delimiter) && part.length > 2;
+  }
+
+  /**
+   * Apply the appropriate formatting to a part
+   */
+  private applyFormatting(part: string, type: 'strong' | 'em' | 'code') {
+    switch (type) {
+      case 'strong':
         this.openMark(this.schema.marks.strong.create());
-        this.parseHtml(part.slice(8, -9)); // Recursively parse nested content
+        this.parseSimpleFormatting(part.slice(1, -1)); // Recursively handle nested
         this.closeMark(this.schema.marks.strong);
-      } else if (part.startsWith('<em>') && part.endsWith('</em>')) {
+        break;
+      case 'em':
         this.openMark(this.schema.marks.em.create());
-        this.parseHtml(part.slice(4, -5));
+        this.parseSimpleFormatting(part.slice(1, -1)); // Recursively handle nested
         this.closeMark(this.schema.marks.em);
-      } else if (part.startsWith('<code>') && part.endsWith('</code>')) {
+        break;
+      case 'code':
         this.openMark(this.schema.marks.code.create());
-        this.addText(part.slice(6, -7));
+        this.addText(part.slice(1, -1));
         this.closeMark(this.schema.marks.code);
-      } else if (part.startsWith('<b>') && part.endsWith('</b>')) {
-        this.openMark(this.schema.marks.strong.create());
-        this.parseHtml(part.slice(3, -4));
-        this.closeMark(this.schema.marks.strong);
-      } else if (part.startsWith('<i>') && part.endsWith('</i>')) {
-        this.openMark(this.schema.marks.em.create());
-        this.parseHtml(part.slice(3, -4));
-        this.closeMark(this.schema.marks.em);
-      } else if (part.startsWith('<a href=') && part.includes('</a>')) {
-        // Handle links: <a href="url">text</a>
-        const hrefMatch = part.match(/href="([^"]*)"/);
-        const linkEnd = part.indexOf('>') + 1;
-        const linkText = part.slice(linkEnd, part.indexOf('</a>'));
-        if (hrefMatch) {
-          this.openMark(this.schema.marks.link.create({href: hrefMatch[1]}));
-          this.parseHtml(linkText);
-          this.closeMark(this.schema.marks.link);
-        } else {
-          this.parseHtml(linkText);
-        }
-      } else if (part.includes('<') && part.includes('>')) {
-        // Skip other HTML tags but try to extract text content
-        const tagEnd = part.indexOf('>') + 1;
-        if (tagEnd < part.length && part.includes('</')) {
-          const contentEnd = part.lastIndexOf('<');
-          if (contentEnd > tagEnd) {
-            const content = part.slice(tagEnd, contentEnd);
-            this.parseHtml(content);
-          }
-        }
-        // Skip self-closing tags and malformed tags
-      } else {
-        this.addText(part);
-      }
+        break;
     }
   }
+
 
   // Add a node at the current position.
   addNode(type: NodeType, attrs: Attrs | null, content?: readonly Node[]) {
@@ -575,19 +679,32 @@ class AsciiDocParseState {
 }
 
 /// A parser parsing AsciiDoc text and producing a document in the basic schema.
+/**
+ * Main parser class for converting AsciiDoc markup to ProseMirror documents.
+ * Uses the AsciiDocParseState to maintain parsing context and build the document tree.
+ */
 export class AsciiDocParser {
   readonly schema: Schema;
+
+  /**
+   * Creates a new AsciiDoc parser with the specified schema.
+   * @param schema The ProseMirror schema defining available node and mark types
+   */
   constructor(schema: Schema) {
     this.schema = schema;
   }
 
-  /// Parse a string as AsciiDoc markup, and create a ProseMirror document.
+  /**
+   * Parse a string as AsciiDoc markup, and create a ProseMirror document.
+   * @param text The AsciiDoc markup string to parse
+   * @returns A ProseMirror document node representing the parsed content
+   */
   parse(text: string) {
-    let state = new AsciiDocParseState(this.schema)
+    const state = new AsciiDocParseState(this.schema)
     state.parseAsciidoc(text)
-    let doc
-    do { doc = state.closeNode() } while (state.stack.length)
-    return doc || this.schema.topNodeType.createAndFill()!
+    let document
+    do { document = state.closeNode() } while (state.stack.length)
+    return document || this.schema.topNodeType.createAndFill()!
   }
 }
 

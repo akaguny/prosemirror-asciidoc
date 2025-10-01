@@ -5,8 +5,8 @@
 
 import { expect, test, describe } from "vitest"
 import { defaultAsciiDocParser, defaultAsciiDocSerializer } from "../src/index.js"
-import { testRoundtrip } from "./helpers"
-import { fixtures } from "./fixtures"
+import { testRoundtrip } from "./helpers.js"
+import { fixtures } from "./fixtures.js"
 
 describe("AsciiDoc Integration Tests", () => {
   describe("Complete Documents", () => {

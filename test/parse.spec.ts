@@ -11,14 +11,14 @@ import { expect, test, describe } from "vitest"
 
 import { asciidocSchema, defaultAsciiDocParser, defaultAsciiDocSerializer, AsciiDocSerializer } from "../src/index.js"
 import { doc, blockquote, h1, h2, p, hr, li, ol, ol3, ul, pre, em, strong, code, a, link, br, img } from "./build.js"
-import { testParse, testSerialize, testRoundtrip, createTestSuite } from "./helpers"
+import { testParse, testSerialize, testRoundtrip, createTestSuite } from "./helpers.js"
 import { 
   basicTestCases,
   inlineFormattingCases,
   nestedTestCases,
   specialCases,
   testCases
-} from "./fixtures"
+} from "./fixtures.js"
 
 /**
  * Main test suite for AsciiDoc parsing and serialization

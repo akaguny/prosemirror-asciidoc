@@ -60,15 +60,72 @@ class AsciiDocParseState {
     // Check if document has a title
     this.hasDocumentTitle = !!doc.getTitle();
 
-    // If there's a document title, parse it as a level 1 heading
-    if (this.hasDocumentTitle) {
-      this.openNode(this.schema.nodes.heading, {level: 1});
-      this.addText(doc.getTitle());
-      this.closeNode();
+    // Get all blocks
+    const blocks = doc.getBlocks();
+
+    // Only add document title as heading if there are other blocks
+    // For simple cases like "= Title", AsciiDoctor treats it as a section, not a document title
+    if (this.hasDocumentTitle && blocks.length > 0) {
+      // Check if the first block is the document title section
+      const firstBlock = blocks[0];
+      if (firstBlock.getNodeName() === 'section' && firstBlock.getTitle() === doc.getTitle()) {
+        // Skip adding document title as it's already included as the first section
+      } else {
+        this.openNode(this.schema.nodes.heading, {level: 1});
+        this.addText(doc.getTitle());
+        this.closeNode();
+      }
     }
 
     // Parse all blocks as sections
-    this.parseBlocks(doc.getBlocks());
+    this.parseBlocks(blocks);
+  }
+
+  // Helper method to safely get block content with multiple fallbacks
+  getBlockContent(block: any): string {
+    // Try getSource() first (preferred for literal content)
+    if (typeof block.getSource === 'function') {
+      try {
+        const source = block.getSource();
+        if (source !== undefined && source !== null) {
+          return source;
+        }
+      } catch (e) {
+        // getSource() failed, continue to fallbacks
+      }
+    }
+
+    // Try getText() for simple text content
+    if (typeof block.getText === 'function') {
+      try {
+        const text = block.getText();
+        if (text !== undefined && text !== null) {
+          return text;
+        }
+      } catch (e) {
+        // getText() failed, continue to fallbacks
+      }
+    }
+
+    // Try getContent() for HTML content
+    if (typeof block.getContent === 'function') {
+      try {
+        const content = block.getContent();
+        if (content !== undefined && content !== null) {
+          return content;
+        }
+      } catch (e) {
+        // getContent() failed, continue to fallbacks
+      }
+    }
+
+    // Try lines property as last resort
+    if (block.lines && Array.isArray(block.lines)) {
+      return block.lines.join('\n');
+    }
+
+    // Return empty string if all methods fail
+    return '';
   }
 
   parseBlocks(blocks: any[]) {
@@ -117,6 +174,9 @@ class AsciiDocParseState {
       case 'thematic_break':
         this.parseThematicBreak(block);
         break;
+      case 'table':
+        this.parseTable(block);
+        break;
       default:
         console.warn('Unknown block type:', nodeName);
     }
@@ -124,18 +184,12 @@ class AsciiDocParseState {
 
   parseParagraph(block: any) {
     this.openNode(this.schema.nodes.paragraph);
-    const source = block.getSource();
-    if (source) {
-      // Use source text and parse inline formatting
-      this.parseInline(source);
+    const content = this.getBlockContent(block);
+    if (content) {
+      // Use content text and parse inline formatting
+      this.parseInline(content);
     } else {
-      const content = block.getContent();
-      if (typeof content === 'string') {
-        // Fallback to HTML parsing if source not available
-        this.parseHtml(content);
-      } else {
-        this.addText('');
-      }
+      this.addText('');
     }
     this.closeNode();
   }
@@ -151,10 +205,10 @@ class AsciiDocParseState {
         level = match[1].length;
       }
     } else {
-      // Fallback to source
-      const source = block.getSource();
-      if (source) {
-        const match = source.match(/^(=+)\s/);
+      // Fallback to block content
+      const content = this.getBlockContent(block);
+      if (content) {
+        const match = content.match(/^(=+)\s/);
         if (match) {
           level = match[1].length;
         }
@@ -181,15 +235,26 @@ class AsciiDocParseState {
     const items = block.getItems ? block.getItems() : [];
     for (let item of items) {
       this.openNode(this.schema.nodes.list_item);
-      const text = item.getContent ? item.getContent() : '';
+
+      // Get text content from the item
+      let text = '';
+      if (item.getText) {
+        text = item.getText();
+      } else if (item.getContent) {
+        text = item.getContent();
+      }
+
       if (text.trim()) {
         this.openNode(this.schema.nodes.paragraph);
         this.parseInline(text);
         this.closeNode();
       }
+
+      // Parse any nested blocks (for nested lists)
       if (item.getBlocks) {
         this.parseBlocks(item.getBlocks());
       }
+
       this.closeNode();
     }
     this.closeNode();
@@ -249,13 +314,25 @@ class AsciiDocParseState {
 
   parseLiteral(block: any) {
     this.openNode(this.schema.nodes.code_block);
-    this.addText(block.getSource());
+    const content = this.getBlockContent(block);
+    this.addText(content);
     this.closeNode();
   }
 
   parseListing(block: any) {
+    // Include the title if it exists
+    const title = block.getTitle ? block.getTitle() : '';
+    if (title) {
+      this.openNode(this.schema.nodes.paragraph);
+      this.openMark(this.schema.marks.strong.create());
+      this.addText(title);
+      this.closeMark(this.schema.marks.strong);
+      this.closeNode();
+    }
+
     this.openNode(this.schema.nodes.code_block);
-    this.addText(block.getSource());
+    const content = this.getBlockContent(block);
+    this.addText(content);
     this.closeNode();
   }
 
@@ -288,10 +365,39 @@ class AsciiDocParseState {
     this.addNode(this.schema.nodes.horizontal_rule, null);
   }
 
+  parseTable(block: any) {
+    // Tables are not directly supported in the basic schema, treat as paragraph
+    // This is a simple fallback - in a real implementation you'd want proper table support
+    this.openNode(this.schema.nodes.paragraph);
+
+    // Include the title if it exists
+    const title = block.getTitle ? block.getTitle() : '';
+    if (title) {
+      this.openMark(this.schema.marks.strong.create());
+      this.addText(title);
+      this.closeMark(this.schema.marks.strong);
+      this.addText('\n');
+    }
+
+    const content = this.getBlockContent(block);
+    if (content) {
+      this.parseInline(content);
+    } else {
+      this.addText('[Table content not supported]');
+    }
+    this.closeNode();
+  }
+
   parseInline(text: string) {
+    // Check if the original text contains backslash escapes
+    const hasEscapes = text.includes('\\');
+
+    // First, handle escaped characters that should not be processed as formatting
+    let processedText = text.replace(/\\(\*|_|`|\+|\\)/g, '\u0000$1'); // Use null character as escape marker
+
     // Improved inline parsing for AsciiDoc
     // Handle links first, then other formatting to avoid conflicts
-    let remaining = text;
+    let remaining = processedText;
 
     // Handle links: link:URL[Text]
     const linkRegex = /link:([^\[]*)\[([^\]]*)\]/g;
@@ -327,14 +433,31 @@ class AsciiDocParseState {
         this.closeMark(this.schema.marks.link);
       } else {
         // Handle other formatting: *strong*, _italic_, `code`, +code+
-        this.parseSimpleFormatting(part);
+        if (hasEscapes) {
+          // If original text had escapes, don't apply formatting
+          let cleanedText = part.replace(/\u0000(\*|_|`|\+|\\)/g, '$1');
+          this.addText(cleanedText);
+        } else {
+          this.parseSimpleFormatting(part);
+        }
       }
     }
   }
 
   parseSimpleFormatting(text: string) {
+    // Handle escaped characters (marked with null character)
+    let processedText = text.replace(/\u0000(\*|_|`|\+|\\)/g, '$1');
+
+    // If the text contains backslashes (indicating escaped content), clean them up and don't apply formatting
+    if (processedText.includes('\\')) {
+      // Clean up backslashes that are not part of formatting
+      let cleanedText = processedText.replace(/\\(\*|_)/g, '$1');
+      this.addText(cleanedText);
+      return;
+    }
+
     // Handle nested and overlapping formatting more carefully
-    let parts = text.split(/(\*.*?\*|_.*?_|`.*?`|\+.*?\+)/g);
+    let parts = processedText.split(/(\*.*?\*|_.*?_|`.*?`|\+.*?\+)/g);
 
     for (let part of parts) {
       if (!part) continue;

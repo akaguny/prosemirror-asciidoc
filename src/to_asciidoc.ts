@@ -82,6 +82,8 @@ export class AsciiDocSerializerState {
   atBlockStart: boolean = false
   /// @internal
   inTightList: boolean = false
+  /// @internal
+  listNestingLevel: number = 0
 
   /// @internal
   constructor(
@@ -367,8 +369,17 @@ export class AsciiDocSerializerState {
 /// An AsciiDoc serializer for the basic schema.
 export const defaultAsciiDocSerializer = new AsciiDocSerializer({
   blockquote(state, node) {
-    state.wrapBlock("____\n", null, node, () => state.renderContent(node))
-    state.write("____")
+    state.write("____\n")
+    // Render content without automatic block closing newlines
+    node.forEach((child, _, i) => {
+      if (child.type.name === 'paragraph') {
+        // For paragraphs inside blockquotes, don't add trailing newlines
+        state.renderInline(child)
+      } else {
+        state.render(child, node, i)
+      }
+    })
+    state.write("\n____")
     state.closeBlock(node)
   },
   code_block(state, node) {
@@ -383,23 +394,26 @@ export const defaultAsciiDocSerializer = new AsciiDocSerializer({
     state.closeBlock(node)
   },
   horizontal_rule(state, node) {
-    state.write("'''")
+    state.write("'''\n")
     state.closeBlock(node)
   },
   bullet_list(state, node) {
-    state.renderList(node, "  ", () => "* ")
+    // Ensure lists are tight (no extra blank lines) for AsciiDoc format
+    let tightNode = node.attrs.tight !== false ? node : node.type.create({tight: true}, node.content, node.marks)
+
+    let marker = state.repeat("*", state.listNestingLevel + 1) + " "
+    // For AsciiDoc nested lists, don't add extra indentation - just use multiple asterisks
+    state.renderList(tightNode, "", () => marker)
   },
   ordered_list(state, node) {
-    let start = node.attrs.order || 1
-    let maxW = String(start + node.childCount - 1).length
-    let space = state.repeat(" ", maxW + 2)
-    state.renderList(node, space, i => {
-      let nStr = String(start + i)
-      return state.repeat(" ", maxW - nStr.length) + nStr + ". "
-    })
+    // AsciiDoc uses . for all ordered list items, not numbered
+    let tightNode = node.attrs.tight !== false ? node : node.type.create({tight: true}, node.content, node.marks)
+    state.renderList(tightNode, "  ", () => ". ")
   },
   list_item(state, node) {
+    state.listNestingLevel++
     state.renderContent(node)
+    state.listNestingLevel--
   },
   paragraph(state, node) {
     state.renderInline(node)

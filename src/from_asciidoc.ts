@@ -1,6 +1,7 @@
 import Asciidoctor from 'asciidoctor';
 import { asciidocSchema } from "./schema"
-import {Mark, MarkType, Node, Attrs, Schema, NodeType} from "prosemirror-model"
+import {Mark, MarkType, Node, Schema, NodeType} from "prosemirror-model"
+import type { Attrs } from "prosemirror-model"
 
 function maybeMerge(a: Node, b: Node): Node | undefined {
   if (a.isText && b.isText && Mark.sameSet(a.marks, b.marks))
@@ -13,9 +14,12 @@ class AsciiDocParseState {
   asciidoctor: any;
   hasDocumentTitle: boolean = false;
 
+  schema: Schema;
+
   constructor(
-    readonly schema: Schema
+    schema: Schema
   ) {
+    this.schema = schema;
     this.stack = [{type: schema.topNodeType, attrs: null, content: [], marks: Mark.none}]
     this.asciidoctor = Asciidoctor();
   }
@@ -449,7 +453,10 @@ class AsciiDocParseState {
 
 /// A parser parsing AsciiDoc text and producing a document in the basic schema.
 export class AsciiDocParser {
-  constructor(readonly schema: Schema) {}
+  readonly schema: Schema;
+  constructor(schema: Schema) {
+    this.schema = schema;
+  }
 
   /// Parse a string as AsciiDoc markup, and create a ProseMirror document.
   parse(text: string) {

@@ -1,7 +1,7 @@
 import './style.css'
 import { EditorState } from 'prosemirror-state'
 import { EditorView } from 'prosemirror-view'
-import { asciidocSchema, defaultAsciiDocParser, defaultAsciiDocSerializer } from '../../dist/index.js'
+import { asciidocSchema, defaultAsciiDocParser, defaultAsciiDocSerializer } from '../../src/index.ts'
 import { sampleAsciiDoc } from './sampleAsciiDoc.js'
 import { keymap } from 'prosemirror-keymap'
 import { baseKeymap, toggleMark, setBlockType } from 'prosemirror-commands'

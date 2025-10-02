@@ -32,6 +32,13 @@ Guidelines for systematic refactoring approach in the prosemirror-asciidoc proje
 - Use consistent error handling patterns
 - Log failures for debugging without silent fails
 
+## Architecture improvements
+- Implement modular handler registries for extensible block/node processing
+- Create focused handler classes with single responsibilities
+- Extract shared utilities into reusable modules (content extraction, text processing, list helpers)
+- Use registry patterns instead of monolithic switch statements
+- Maintain backward compatibility while improving internal structure
+
 ## Testing strategy
 - Run core tests (vitest) frequently during refactoring
 - Focus on test/parse.spec.ts and test/integration.spec.ts

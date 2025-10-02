@@ -2,6 +2,8 @@ import Asciidoctor from 'asciidoctor';
 import { asciidocSchema } from "./schema"
 import {Mark, MarkType, Node, Schema, NodeType} from "prosemirror-model"
 import type { Attrs } from "prosemirror-model"
+import { extractBlockContent, extractListItemText } from './utils/content-extraction'
+import { getOrderedListStart } from './utils/list-helpers'
 // TypeScript interfaces for Asciidoctor objects to improve type safety
 interface AsciidoctorDocument {
   getTitle(): string | undefined;
@@ -153,30 +155,7 @@ class AsciiDocParseState {
 
   // Helper method to safely get block content with multiple fallbacks
   getBlockContent(block: AsciidoctorBlock): string {
-    // Define content getters in order of preference
-    const contentGetters = [
-      { name: 'getSource', getter: () => block.getSource?.() },
-      { name: 'getText', getter: () => block.getText?.() },
-      { name: 'getContent', getter: () => block.getContent?.() },
-      { name: 'lines', getter: () => block.lines?.join('\n') }
-    ];
-
-    // Try each getter and return the first successful result
-    for (const { name, getter } of contentGetters) {
-      try {
-        const content = getter();
-        if (content !== undefined && content !== null) {
-          this.log('info', `Successfully extracted content using ${name}`, { blockType: block.getNodeName() });
-          return content;
-        }
-      } catch (error) {
-        this.log('warn', `Failed to get content using ${name}`, { blockType: block.getNodeName(), error: error instanceof Error ? error.message : String(error) });
-      }
-    }
-
-    // Return empty string if all methods fail
-    this.log('warn', 'All content extraction methods failed', { blockType: block.getNodeName() });
-    return '';
+    return extractBlockContent(block);
   }
 
   /**
@@ -286,7 +265,7 @@ class AsciiDocParseState {
   }
 
   parseOrderedList(block: AsciidoctorBlock) {
-    const start = block.getStart ? block.getStart() : 1;
+    const start = getOrderedListStart(block);
     this.parseList(block, this.schema.nodes.ordered_list, {order: start});
   }
 
@@ -331,12 +310,7 @@ class AsciiDocParseState {
    * Extract text content from a list item
    */
   private getListItemText(item: AsciidoctorListItem): string {
-    if (item.getText) {
-      return item.getText() || '';
-    } else if (item.getContent) {
-      return item.getContent() || '';
-    }
-    return '';
+    return extractListItemText(item);
   }
 
   parseDescriptionList(block: AsciidoctorBlock) {

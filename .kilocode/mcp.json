@@ -14,14 +14,12 @@
         "get-library-docs"
       ]
     },
-    "playwright": {
+    "filesystem": {
       "command": "npx",
       "args": [
         "-y",
-        "@playwright/mcp@latest",
-        "--browser=",
-        "--headless=",
-        "--viewport-size="
+        "@modelcontextprotocol/server-filesystem",
+        "${workspaceFolder}"
       ]
     }
   }

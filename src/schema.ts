@@ -1,3 +1,4 @@
+/// <reference lib="dom" />
 import {Schema} from "prosemirror-model"
 import type {MarkSpec} from "prosemirror-model"
 

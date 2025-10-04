@@ -129,3 +129,6 @@ export class AsciiDocSerializer {
 
 /// An AsciiDoc serializer for the basic schema.
 export const defaultAsciiDocSerializer = new AsciiDocSerializer()
+
+// Re-export AsciiDocSerializerState for external use
+export { AsciiDocSerializerState } from './serializer/state'

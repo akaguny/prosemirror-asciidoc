@@ -1,13 +1,9 @@
 import './style.css'
-import { EditorState } from 'prosemirror-state'
-import { EditorView } from 'prosemirror-view'
 import { asciidocSchema, defaultAsciiDocParser, defaultAsciiDocSerializer } from '../../src/index.ts'
 import { sampleAsciiDoc } from './sampleAsciiDoc.js'
-import { keymap } from 'prosemirror-keymap'
-import { baseKeymap, toggleMark, setBlockType } from 'prosemirror-commands'
-import { history } from 'prosemirror-history'
+import AsciiDocEditor from './AsciiDocEditor'
 
-let editorView: EditorView | null = null
+let asciidocEditor: AsciiDocEditor | null = null
 let outputTextarea: HTMLTextAreaElement | null = null
 
 // Create the application UI
@@ -20,6 +16,7 @@ function createApp() {
         <button id="h3-btn">H3</button>
         <button id="bold-btn">Bold</button>
         <button id="italic-btn">Italic</button>
+        <button id="reset-btn">Reset</button>
       </div>
       <div id="editor" class="editor"></div>
       <textarea id="output" class="output-textarea" readonly></textarea>
@@ -30,60 +27,95 @@ function createApp() {
 }
 
 
-// Initialize ProseMirror editor
+// Initialize AsciiDocEditor
 function initializeEditor() {
-  const prosemirror = document.getElementById('editor')!
+  const editorContainer = document.getElementById('editor')!
   outputTextarea = document.getElementById('output') as HTMLTextAreaElement
 
-  const updateOutput = () => {
-    if (editorView && outputTextarea) {
-      outputTextarea.value = defaultAsciiDocSerializer.serialize(editorView.state.doc)
-    }
-  }
-
-  const customKeymap = {
-    'Mod-1': setBlockType(asciidocSchema.nodes.heading, { level: 1 }),
-    'Mod-2': setBlockType(asciidocSchema.nodes.heading, { level: 2 }),
-    'Mod-3': setBlockType(asciidocSchema.nodes.heading, { level: 3 }),
-    'Mod-b': toggleMark(asciidocSchema.marks.strong),
-    'Mod-i': toggleMark(asciidocSchema.marks.em)
-  }
-
-  editorView = new EditorView(prosemirror, {
-    state: EditorState.create({
-      schema: asciidocSchema,
-      doc: defaultAsciiDocParser.parse(sampleAsciiDoc),
-      plugins: [keymap(customKeymap), keymap(baseKeymap), history()]
-    }),
-    dispatchTransaction: (transaction) => {
-      if (!editorView) return
-
-      const newState = editorView.state.apply(transaction)
-      editorView.updateState(newState)
-      updateOutput()
-    }
+  // Создаем экземпляр AsciiDocEditor
+  asciidocEditor = new AsciiDocEditor({
+    container: editorContainer,
+    initialContent: sampleAsciiDoc,
+    onChange: (content: string) => {
+      if (outputTextarea) {
+        outputTextarea.value = content
+      }
+    },
+    placeholder: 'Начните писать AsciiDoc...',
   })
 
   // Add toolbar button handlers
   document.getElementById('h2-btn')!.addEventListener('click', () => {
-    setBlockType(asciidocSchema.nodes.heading, { level: 2 })(editorView!.state, editorView!.dispatch)
-    editorView!.focus()
+    // Вставляем заголовок H2 через клавиатурное сочетание
+    asciidocEditor?.focus()
+    // Имитируем нажатие клавиш для создания заголовка
+    const editorElement = document.querySelector('.ProseMirror') as HTMLElement
+    if (editorElement) {
+      const event = new KeyboardEvent('keydown', {
+        key: '2',
+        ctrlKey: true,
+        metaKey: true,
+        bubbles: true,
+      })
+      editorElement.dispatchEvent(event)
+    }
   })
+
   document.getElementById('h3-btn')!.addEventListener('click', () => {
-    setBlockType(asciidocSchema.nodes.heading, { level: 3 })(editorView!.state, editorView!.dispatch)
-    editorView!.focus()
+    // Вставляем заголовок H3 через клавиатурное сочетание
+    asciidocEditor?.focus()
+    const editorElement = document.querySelector('.ProseMirror') as HTMLElement
+    if (editorElement) {
+      const event = new KeyboardEvent('keydown', {
+        key: '3',
+        ctrlKey: true,
+        metaKey: true,
+        bubbles: true,
+      })
+      editorElement.dispatchEvent(event)
+    }
   })
+
   document.getElementById('bold-btn')!.addEventListener('click', () => {
-    toggleMark(asciidocSchema.marks.strong)(editorView!.state, editorView!.dispatch)
-    editorView!.focus()
+    // Вставляем жирный текст через клавиатурное сочетание
+    asciidocEditor?.focus()
+    const editorElement = document.querySelector('.ProseMirror') as HTMLElement
+    if (editorElement) {
+      const event = new KeyboardEvent('keydown', {
+        key: 'b',
+        ctrlKey: true,
+        metaKey: true,
+        bubbles: true,
+      })
+      editorElement.dispatchEvent(event)
+    }
   })
+
   document.getElementById('italic-btn')!.addEventListener('click', () => {
-    toggleMark(asciidocSchema.marks.em)(editorView!.state, editorView!.dispatch)
-    editorView!.focus()
+    // Вставляем курсив через клавиатурное сочетание
+    asciidocEditor?.focus()
+    const editorElement = document.querySelector('.ProseMirror') as HTMLElement
+    if (editorElement) {
+      const event = new KeyboardEvent('keydown', {
+        key: 'i',
+        ctrlKey: true,
+        metaKey: true,
+        bubbles: true,
+      })
+      editorElement.dispatchEvent(event)
+    }
+  })
+
+  document.getElementById('reset-btn')!.addEventListener('click', () => {
+    // Сбрасываем содержимое редактора
+    asciidocEditor?.updateContent('')
+    asciidocEditor?.focus()
   })
 
   // Initial update
-  updateOutput()
+  if (outputTextarea) {
+    outputTextarea.value = sampleAsciiDoc
+  }
 }
 
 // Initialize the application

@@ -1,4 +1,5 @@
 import type { NodeType, MarkType, Schema } from "prosemirror-model"
+import type { AsciiDocSerializerState } from "../serializer/state"
 
 /**
  * TypeScript interfaces for Asciidoctor objects to improve type safety
@@ -100,15 +101,15 @@ export interface BlockHandler {
  * Handler interface for node serialization
  */
 export interface NodeSerializer {
-  serialize(state: SerializerState, node: any, parent: any, index: number): void
+  serialize(state: AsciiDocSerializerState, node: any, parent: any, index: number): void
 }
 
 /**
  * Handler interface for mark serialization
  */
 export interface MarkSerializer {
-  open: string | ((state: SerializerState, mark: any, parent: any, index: number) => string)
-  close: string | ((state: SerializerState, mark: any, parent: any, index: number) => string)
+  open: string | ((state: AsciiDocSerializerState, mark: any, parent: any, index: number) => string)
+  close: string | ((state: AsciiDocSerializerState, mark: any, parent: any, index: number) => string)
   mixable?: boolean
   expelEnclosingWhitespace?: boolean
   escape?: boolean

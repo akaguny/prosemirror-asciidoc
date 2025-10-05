@@ -9,9 +9,17 @@ import { logger } from '../../../utils/error-handling'
 export class ParagraphSerializer implements NodeSerializer {
   serialize(state: AsciiDocSerializerState, node: Node, parent: Node, index: number): void {
     try {
-      state.renderInline(node)
+      // Check if paragraph has content
+      const hasContent = node.textContent.trim().length > 0
+
+      if (hasContent) {
+        state.renderInline(node)
+      } else {
+        // For empty paragraphs, ensure a blank line is maintained
+        state.write('')
+      }
       state.closeBlock(node)
-      logger.info('Serialized paragraph node', { nodeType: 'paragraph' })
+      logger.info('Serialized paragraph node', { nodeType: 'paragraph', hasContent })
     } catch (error) {
       logger.error('Failed to serialize paragraph node', {
         error: error instanceof Error ? error.message : String(error)

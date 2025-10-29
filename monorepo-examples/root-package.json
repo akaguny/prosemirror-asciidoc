@@ -1,0 +1,49 @@
+{
+  "name": "asciidoc-prosemirror-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "AsciiDoc support for ProseMirror - Monorepo",
+  "type": "module",
+  "scripts": {
+    "build": "pnpm -r --filter='!@asciidoc-prosemirror/demo' run build",
+    "build:all": "pnpm -r run build",
+    "build:demo": "pnpm --filter @asciidoc-prosemirror/demo run build",
+    "dev": "pnpm --filter @asciidoc-prosemirror/demo run dev",
+    "test": "pnpm -r run test",
+    "test:core": "pnpm --filter @asciidoc-prosemirror/core run test",
+    "test:vanillajs": "pnpm --filter @asciidoc-prosemirror/vanillajs run test",
+    "lint": "pnpm -r run lint",
+    "format": "prettier --write \"packages/**/src/**/*.{ts,tsx,js,jsx}\"",
+    "clean": "pnpm -r run clean && rm -rf node_modules",
+    "publish:packages": "pnpm -r --filter='!@asciidoc-prosemirror/demo' publish --access public",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "pnpm build && pnpm changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.27.1",
+    "@types/node": "^20.0.0",
+    "prettier": "^3.2.5",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.7",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-org/asciidoc-prosemirror.git"
+  },
+  "keywords": [
+    "prosemirror",
+    "asciidoc",
+    "editor",
+    "wysiwyg",
+    "monorepo"
+  ],
+  "author": "Alexey Shcherbakov <akaguny@users.noreply.github.com>",
+  "license": "MIT",
+  "homepage": "https://github.com/your-org/asciidoc-prosemirror#readme"
+}

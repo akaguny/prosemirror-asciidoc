@@ -82,8 +82,8 @@ demo (зависит от vanillajs)
 ## Версионирование
 
 - `@asciidoc-prosemirror/core`: `2.0.0` (breaking change от `prosemirror-asciidoc`)
-- `@asciidoc-prosemirror/prosemirror`: `0.0.0` → `1.0.0` 
-- `@asciidoc-prosemirror/vanillajs`: `0.0.0` → `1.0.0`
+- `@asciidoc-prosemirror/prosemirror`: `0.0.0` (новый пакет)
+- `@asciidoc-prosemirror/vanillajs`: `0.0.0` (новый пакет)
 - `@asciidoc-prosemirror/demo`: `0.0.0` (private)
 
 ## Примеры конфигураций
@@ -95,7 +95,3 @@ demo (зависит от vanillajs)
 - `packages/*/package.json`
 - `packages/*/vite.config.ts`
 - `.github-workflows-*.yml`
-
-## Решение
-
-Принято / Отклонено: [TBD]

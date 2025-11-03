@@ -1,0 +1,62 @@
+{
+  "name": "@asciidoc-prosemirror/prosemirror",
+  "version": "0.0.0",
+  "description": "ProseMirror integration utilities for AsciiDoc",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "prosemirror",
+    "asciidoc",
+    "plugins",
+    "keymap",
+    "commands"
+  ],
+  "author": "Alexey Shcherbakov <akaguny@users.noreply.github.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-org/asciidoc-prosemirror.git",
+    "directory": "packages/prosemirror"
+  },
+  "dependencies": {
+    "@asciidoc-prosemirror/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "prosemirror-commands": "^1.6.2",
+    "prosemirror-inputrules": "^1.4.0",
+    "prosemirror-keymap": "^1.2.2",
+    "prosemirror-model": "^1.25.3",
+    "prosemirror-state": "^1.4.3"
+  },
+  "devDependencies": {
+    "prosemirror-commands": "^1.6.2",
+    "prosemirror-inputrules": "^1.4.0",
+    "prosemirror-keymap": "^1.2.2",
+    "prosemirror-model": "^1.25.3",
+    "prosemirror-state": "^1.4.3",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.7",
+    "vitest": "^3.2.4"
+  }
+}

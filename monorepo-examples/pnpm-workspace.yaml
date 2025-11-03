@@ -1,0 +1,13 @@
+# pnpm workspace configuration
+# This file defines which directories contain packages in the monorepo
+
+packages:
+  # All packages in the packages directory
+  - 'packages/*'
+
+# Alternatively, you can be more explicit:
+# packages:
+#   - 'packages/core'
+#   - 'packages/prosemirror'
+#   - 'packages/vanillajs'
+#   - 'packages/demo'
